@@ -500,11 +500,11 @@ func (s *state) decimalHrDeg() (string, error) {
 	var r, f string
 	if wid, widSpec := s.Width(); !widSpec {
 		if s.Flag('+') {
-			f = "%+*d"
+			f = "%+0*d"
 		} else if s.Flag(' ') { // sign space if requested
-			f = "% *d"
+			f = "% 0*d"
 		} else {
-			f = "%*d"
+			f = "%0*d"
 		}
 		// +1 forces at least one place left of decimal point
 		r = fmt.Sprintf(f, s.prec+1, i)

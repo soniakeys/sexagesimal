@@ -109,63 +109,12 @@ func TestOverflow(t *testing.T) {
 	}
 }
 
-/*
-func ExampleSplit60() {
-	neg, x60, seg, err := sexa.Split60(-123.456, 2, true, true)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	s := ""
-	if neg {
-		s = "-"
-	}
-	fmt.Printf("%s%02d° %s′\n", s, x60, seg)
-	// Output:
-	// -02° 03.46′
-}
-
-func TestSplit60(t *testing.T) {
-	for _, tc := range []struct {
-		x    float64
-		prec int
-		neg  bool
-		quo  int64
-		rem  string
-		err  error
-	}{
-		// warm up
-		{75, 0, false, 1, "15", nil},
-		{75, 1, false, 1, "15.0", nil},
-		// smallest valid with prec = 15 is about 4.5 seconds.
-		{4.500000123456789, 15, false, 0, "4.500000123456789", nil},
-		//		{9, 16, false, 0, "9", sexa.ErrInvalidPrecision},
-		{10, 15, false, 0, "10", sexa.ErrLossOfPrecision},
-		// one degree can have 12 digits of precision without loss.
-		{3600, 12, false, 60, "0.000000000000", nil},
-		// 360 degrees (21600 minutes) can have 9.
-		{360 * 3600, 9, false, 21600, "0.000000000", nil},
-	} {
-		neg, quo, rem, err := sexa.Split60(tc.x, tc.prec, false, true)
-		if err != tc.err {
-			t.Logf("%#v", tc)
-			t.Fatal("err", err)
-		}
-		if err != nil {
-			continue
-		}
-		if neg != tc.neg {
-			t.Logf("%#v", tc)
-			t.Fatal("neg", neg)
-		}
-		if quo != tc.quo {
-			t.Logf("%#v", tc)
-			t.Fatal("quo", quo)
-		}
-		if rem != tc.rem {
-			t.Logf("%#v", tc)
-			t.Fatal("rem", rem)
-		}
+func TestFmtLeadingZero(t *testing.T) {
+	// regression test
+	a := sexa.NewFmtAngle(.089876 * math.Pi / 180)
+	got := fmt.Sprintf("%.6h", a)
+	want := "0.089876°"
+	if got != want {
+		t.Fatalf("Format %%.6h = %s, want %s", got, want)
 	}
 }
-*/
