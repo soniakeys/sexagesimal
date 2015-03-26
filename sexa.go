@@ -9,8 +9,6 @@ import (
 	"math"
 	"strings"
 	"unicode/utf8"
-
-	"github.com/soniakeys/astro"
 )
 
 const (
@@ -297,7 +295,7 @@ type FmtRA struct {
 //
 // The value is wrapped to the range [0,24) hours.
 func NewFmtRA(rad float64) *FmtRA {
-	return &FmtRA{RA: RA(astro.PMod(rad, 2*math.Pi))}
+	return &FmtRA{RA: RA(pmod(rad, 2*math.Pi))}
 }
 
 // SetHMS sets the value of RA from components hour, minute, and second.
@@ -315,8 +313,8 @@ func (ra *FmtRA) Format(f fmt.State, c rune) {
 	s := &state{
 		State: f,
 		verb:  c,
-		// PMod in case ra.RA was directly set to something out of range
-		hrDeg:  astro.PMod(ra.Hour(), 24),
+		// pmod in case ra.RA was directly set to something out of range
+		hrDeg:  pmod(ra.Hour(), 24),
 		caller: fsRA,
 	}
 	ra.Err = s.writeFormatted()
@@ -644,4 +642,17 @@ func (s *state) decimalSec() (string, error) {
 	r = fmt.Sprintf(f, r, min, s.units.Min)
 last:
 	return r + s.lastSeg(sec, s.units.Sec, minEl), nil
+}
+
+// pmod returns a positive floating-point x mod y.
+//
+// For a positive argument y, it returns a value in the range [0,y).
+//
+// The function is not useful for negative values of y.
+func pmod(x, y float64) float64 {
+	r := math.Mod(x, y)
+	if r < 0 {
+		r += y
+	}
+	return r
 }
