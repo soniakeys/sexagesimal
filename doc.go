@@ -138,7 +138,7 @@
 // asterisks "*************" and leave a more descriptive error in the
 // Err field of the value.
 //
-// If you specifiy width, digits of the integer part of the first segment must
+// If you specify width, digits of the integer part of the first segment must
 // fit in the specified width.  Larger values cause overflow.
 //
 // Overflow also happens if more precision is requested than is represented
