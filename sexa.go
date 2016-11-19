@@ -90,9 +90,12 @@ func StripUnit(d, unit string) string {
 
 // DMSToDeg converts from parsed sexagesimal angle components to decimal
 // degrees.
-func DMSToDeg(neg bool, d, m int, s float64) float64 {
+//
+// For argument neg, pass '-' to indicate a negative angle.  Any other argument
+// value, such as ' ', '+', or simply 0, leaves the result non-negative.
+func DMSToDeg(neg byte, d, m int, s float64) float64 {
 	s = (float64((d*60+m)*60) + s) / 3600
-	if neg {
+	if neg == '-' {
 		return -s
 	}
 	return s
@@ -159,7 +162,10 @@ type Angle float64
 
 // NewAngle constructs a new Angle value from sign, degree, minute, and second
 // components.
-func NewAngle(neg bool, d, m int, s float64) Angle {
+//
+// For argument neg, pass '-' to indicate a negative angle.  Any other argument
+// value, such as ' ', '+', or simply 0, leaves the result non-negative.
+func NewAngle(neg byte, d, m int, s float64) Angle {
 	return Angle(DMSToDeg(neg, d, m, s) * math.Pi / 180)
 }
 
@@ -182,11 +188,14 @@ func NewFmtAngle(rad float64) *FmtAngle {
 	return &FmtAngle{Angle: Angle(rad)}
 }
 
-// SetDMS sets the value of an FAngle from sign, degree, minute, and second
+// SetDMS sets the value of an FmtAngle from sign, degree, minute, and second
 // components.
 //
 // The receiver is returned as a convenience.
-func (a *FmtAngle) SetDMS(neg bool, d, m int, s float64) *FmtAngle {
+//
+// For argument neg, pass '-' to set a negative angle.  Any other argument
+// value, such as ' ', '+', or simply 0, sets the angle non-negative.
+func (a *FmtAngle) SetDMS(neg byte, d, m int, s float64) *FmtAngle {
 	a.Angle = NewAngle(neg, d, m, s)
 	return a
 }
@@ -215,7 +224,11 @@ type HourAngle float64
 
 // NewHourAngle constructs a new HourAngle value from sign, hour, minute,
 // and second components.
-func NewHourAngle(neg bool, h, m int, s float64) HourAngle {
+//
+// For argument neg, pass '-' to indicate a negative hour angle.  Any other
+// argument value, such as ' ', '+', or simply 0, leaves the result
+// non-negative.
+func NewHourAngle(neg byte, h, m int, s float64) HourAngle {
 	return HourAngle(DMSToDeg(neg, h, m, s) * 15 * math.Pi / 180)
 }
 
@@ -242,7 +255,10 @@ func NewFmtHourAngle(rad float64) *FmtHourAngle {
 // minute, and second.
 //
 // The receiver is returned as a convenience.
-func (ha *FmtHourAngle) SetHMS(neg bool, h, m int, s float64) *FmtHourAngle {
+//
+// For argument neg, pass '-' to set a negative hour angle.  Any other argument
+// value, such as ' ', '+', or simply 0, sets the hour angle non-negative.
+func (ha *FmtHourAngle) SetHMS(neg byte, h, m int, s float64) *FmtHourAngle {
 	ha.HourAngle = NewHourAngle(neg, h, m, s)
 	return ha
 }
@@ -273,7 +289,7 @@ type RA float64
 // Negative values are not supported, and NewRA wraps values larger than 24
 // to the range [0,24) hours.
 func NewRA(h, m int, s float64) RA {
-	hr := math.Mod(DMSToDeg(false, h, m, s), 24)
+	hr := math.Mod(DMSToDeg(0, h, m, s), 24)
 	return RA(hr * 15 * math.Pi / 180)
 }
 
@@ -332,9 +348,13 @@ type Time float64
 
 // NewTime constructs a new Time value from sign, hour, minute, and
 // second components.
-func NewTime(neg bool, h, m int, s float64) Time {
+//
+// For argument neg, pass '-' to indicate a negative time delta.  Any other
+// argument value, such as ' ', '+', or simply 0, leaves the result
+// non-negative.
+func NewTime(neg byte, h, m int, s float64) Time {
 	s += float64((h*60 + m) * 60)
-	if neg {
+	if neg == '-' {
 		return Time(-s)
 	}
 	return Time(s)
@@ -372,7 +392,10 @@ func NewFmtTime(sec float64) *FmtTime {
 // minute, and second.
 //
 // The receiver is returned as a convenience.
-func (t *FmtTime) SetHMS(neg bool, h, m int, s float64) *FmtTime {
+//
+// For argument neg, pass '-' to set a negative time delta.  Any other
+// argument value, such as ' ', '+', or simply 0, sets a non-negative time.
+func (t *FmtTime) SetHMS(neg byte, h, m int, s float64) *FmtTime {
 	t.Time = NewTime(neg, h, m, s)
 	return t
 }

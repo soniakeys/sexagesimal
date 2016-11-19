@@ -57,16 +57,16 @@ func TestStrip(t *testing.T) {
 
 func ExampleDMSToDeg() {
 	// Example p. 7.
-	fmt.Printf("%.8f\n", sexa.DMSToDeg(false, 23, 26, 49))
+	fmt.Printf("%.8f\n", sexa.DMSToDeg(' ', 23, 26, 49))
 	// Output:
 	// 23.44694444
 }
 
 func ExampleNewAngle() {
 	// Example negative values, p. 9.
-	a := sexa.NewAngle(true, 13, 47, 22)
+	a := sexa.NewAngle('-', 13, 47, 22)
 	fmt.Println(sexa.NewFmtAngle(a.Rad()))
-	a = sexa.NewAngle(true, 0, 32, 41)
+	a = sexa.NewAngle('-', 0, 32, 41)
 	// use # flag to force output of all three components
 	fmt.Printf("%#s\n", sexa.NewFmtAngle(a.Rad()))
 	// Output:
@@ -84,7 +84,7 @@ func ExampleNewRA() {
 
 func ExampleFmtAngle() {
 	// Example p. 6
-	a := new(sexa.FmtAngle).SetDMS(false, 23, 26, 44)
+	a := new(sexa.FmtAngle).SetDMS(' ', 23, 26, 44)
 	fmt.Println(a)
 	// Output:
 	// 23°26′44″
@@ -92,18 +92,18 @@ func ExampleFmtAngle() {
 
 func ExampleFmtTime() {
 	// Example p. 6
-	a := new(sexa.FmtTime).SetHMS(false, 15, 22, 7)
+	a := new(sexa.FmtTime).SetHMS(' ', 15, 22, 7)
 	fmt.Printf("%0s\n", a)
 	// Output:
 	// 15ʰ22ᵐ07ˢ
 }
 
 func TestOverflow(t *testing.T) {
-	a := new(sexa.FmtAngle).SetDMS(false, 23, 26, 44)
+	a := new(sexa.FmtAngle).SetDMS(' ', 23, 26, 44)
 	if f := fmt.Sprintf("%03s", a); f != "023°26′44″" {
 		t.Fatal(f)
 	}
-	a.SetDMS(false, 4423, 26, 44)
+	a.SetDMS(' ', 4423, 26, 44)
 	if f := fmt.Sprintf("%03s", a); f != "**********" {
 		t.Fatal(f)
 	}
