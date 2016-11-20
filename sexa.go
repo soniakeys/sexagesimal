@@ -11,96 +11,6 @@ import (
 	"unicode/utf8"
 )
 
-const (
-	secAppend    = 's'
-	secCombine   = 'c'
-	secInsert    = 'd'
-	minAppend    = 'm'
-	minCombine   = 'n'
-	minInsert    = 'o'
-	hrDegAppend  = 'h'
-	hrDegCombine = 'i'
-	hrDegInsert  = 'j'
-)
-
-// InsertUnit inserts a unit indicator into a formatted decimal number.
-//
-// The indicator is inserted just before the decimal separator if one is
-// present, or at the end of the number otherwise.
-//
-// The package variable DecSep is used to identify the decimal separator.
-// If DecSep is non-empty and occurrs in d, unit is added just before the
-// occurrence.  Otherwise unit is appended to the end of d.
-//
-// See also CombineUnit, StripUnit.
-func InsertUnit(d, unit string) string {
-	if DecSep == "" {
-		return d + unit // DecSep empty, append unit
-	}
-	i := strings.Index(d, DecSep)
-	if i < 0 {
-		return d + unit // no DecSep found, append unit
-	}
-	// insert unit before DecSep
-	return d[:i] + unit + d[i:]
-}
-
-// CombineUnit inserts a unit indicator into a formatted decimal number,
-// combining it if possible with the decimal separator.
-//
-// The package variable DecSep is used to identify the decimal separator.
-// If DecSep is non-empty and occurrs in d, the occurrence is replaced with
-// argument 'unit' and package variable DecCombine.  Otherwise unit is
-// appended to the end of d.
-//
-// See also InsertUnit, StripUnit.
-func CombineUnit(d, unit string) string {
-	if DecSep == "" {
-		return d + unit // DecSep empty, append unit
-	}
-	i := strings.Index(d, DecSep)
-	if i < 0 {
-		return d + unit // no DecSep found, append unit
-	}
-	// insert unit, replace DecSep occurrence with DecCombine
-	return d[:i] + unit + string(DecCombine) + d[i+len(DecSep):]
-}
-
-// StripUnit reverses the action of InsertUnit or CombineUnit,
-// removing the specified unit indicator and restoring a following
-// DecCombine to DecSep.
-func StripUnit(d, unit string) string {
-	xu := strings.Index(d, unit)
-	if xu < 0 {
-		return d
-	}
-	xd := xu + len(unit)
-	if xd == len(d) {
-		return d[:xu] // string ends with unit.  just remove the unit.
-	}
-	if strings.HasPrefix(d[xd:], DecSep) {
-		return d[:xu] + d[xd:] // remove unit, retain DecSep
-	}
-	if r, sz := utf8.DecodeRuneInString(d[xd:]); r == DecCombine {
-		// replace unit and DecCombine with DecSep
-		return d[:xu] + DecSep + d[xd+sz:]
-	}
-	return d // otherwise don't mess with it
-}
-
-// DMSToDeg converts from parsed sexagesimal angle components to decimal
-// degrees.
-//
-// For argument neg, pass '-' to indicate a negative angle.  Any other argument
-// value, such as ' ', '+', or simply 0, leaves the result non-negative.
-func DMSToDeg(neg byte, d, m int, s float64) float64 {
-	s = (float64((d*60+m)*60) + s) / 3600
-	if neg == '-' {
-		return -s
-	}
-	return s
-}
-
 // UnitSymbols holds symbols for formatting FmtAngle, FmtHourAngle, FmtRA,
 // and FmtTime types.
 type UnitSymbols struct {
@@ -132,27 +42,100 @@ var (
 	ErrNaN             = errors.New("NaN")
 )
 
-var (
-	tenf = [16]float64{1e0, 1e1, 1e2, 1e3, 1e4, 1e5,
-		1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15}
-	teni = [16]int64{1e0, 1e1, 1e2, 1e3, 1e4, 1e5,
-		1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15}
-)
-
-// sig verifies and returns significant digits of a number at a precision.
+// CombineUnit inserts a unit indicator into a formatted decimal number,
+// combining it if possible with the decimal separator.
 //
-// x must be >= 0.  prec must be 0..15.
+// The package variable DecSep is used to identify the decimal separator.
+// If DecSep is non-empty and occurrs in d, the occurrence is replaced with
+// argument 'unit' and package variable DecCombine.  Otherwise unit is
+// appended to the end of d.
 //
-// the digits are returned as xs = int64(x * 10**prec + .5), as long as
-// the result xs is small enough that all digits are significant given
-// float64 representation.
-// if xs does not represent a fully significant result -1 is returned.
-func sig(x float64, prec int) int64 {
-	xs := x*tenf[prec] + .5
-	if !(xs <= 1<<52) { // 52 mantissa bits in float64
-		return -1
+// See also InsertUnit, StripUnit.
+func CombineUnit(d, unit string) string {
+	if DecSep == "" {
+		return d + unit // DecSep empty, append unit
 	}
-	return int64(xs)
+	i := strings.Index(d, DecSep)
+	if i < 0 {
+		return d + unit // no DecSep found, append unit
+	}
+	// insert unit, replace DecSep occurrence with DecCombine
+	return d[:i] + unit + string(DecCombine) + d[i+len(DecSep):]
+}
+
+// DMSToDeg converts from parsed sexagesimal angle components to decimal
+// degrees.
+//
+// Typically you pass non-negative values for d, m, and s, and to indicate
+// a negative value, pass '-' for neg.  Any other value, such as ' ', '+',
+// or simply 0, leaves the result non-negative.
+//
+// There are no limits on d, m, or s however.  Negative values or values
+// > 60 for m and s are allowed for example.  The segment values are
+// combined and then if neg is '-' that sum is negated.
+//
+// Also, the interpretation of d as degrees is arbitrary.  The function works
+// as well on hours minutes and seconds.  Generally, m is a sexagesimal part
+// of d and s is a sexagesimal part of m.
+func DMSToDeg(neg byte, d, m int, s float64) float64 {
+	s = (float64((d*60+m)*60) + s) / 3600
+	if neg == '-' {
+		return -s
+	}
+	return s
+}
+
+// InsertUnit inserts a unit indicator into a formatted decimal number.
+//
+// The indicator is inserted just before the decimal separator if one is
+// present, or at the end of the number otherwise.
+//
+// The package variable DecSep is used to identify the decimal separator.
+// If DecSep is non-empty and occurrs in d, unit is added just before the
+// occurrence.  Otherwise unit is appended to the end of d.
+//
+// See also CombineUnit, StripUnit.
+func InsertUnit(d, unit string) string {
+	if DecSep == "" {
+		return d + unit // DecSep empty, append unit
+	}
+	i := strings.Index(d, DecSep)
+	if i < 0 {
+		return d + unit // no DecSep found, append unit
+	}
+	// insert unit before DecSep
+	return d[:i] + unit + d[i:]
+}
+
+// StripUnit reverses the action of InsertUnit or CombineUnit,
+// removing the specified unit indicator and restoring a following
+// DecCombine to DecSep.
+//
+// More specifically, if the specified unit is found at the end of string d
+// or if DecSep is non-empty and ocurrs immediately following, then the unit
+// is Removed.  If the specified unit is found with DecCombine immediately
+// following, then both the unit and the DecCombine rune are replaced with
+// DecSep.
+//
+// DecSep returns ok = true if the unit was found and removed.  Otherwise it
+// returns d unchanged and ok = false.
+func StripUnit(d, unit string) (stripped string, ok bool) {
+	xu := strings.Index(d, unit)
+	if xu < 0 {
+		return d, false
+	}
+	xd := xu + len(unit)
+	if xd == len(d) {
+		return d[:xu], true // string ends with unit.  just remove the unit.
+	}
+	if DecSep != "" && strings.HasPrefix(d[xd:], DecSep) {
+		return d[:xu] + d[xd:], true // remove unit, retain DecSep
+	}
+	if r, sz := utf8.DecodeRuneInString(d[xd:]); r == DecCombine {
+		// replace unit and DecCombine with DecSep
+		return d[:xu] + DecSep + d[xd+sz:], true
+	}
+	return d, false // otherwise don't mess with it
 }
 
 // Angle represents a general purpose angle.
@@ -163,41 +146,33 @@ type Angle float64
 // NewAngle constructs a new Angle value from sign, degree, minute, and second
 // components.
 //
-// For argument neg, pass '-' to indicate a negative angle.  Any other argument
-// value, such as ' ', '+', or simply 0, leaves the result non-negative.
+// For argument neg, pass '-' to negate the result.  Any other argument
+// value, such as ' ', '+', or simply 0, leaves the result non-negated.
 func NewAngle(neg byte, d, m int, s float64) Angle {
 	return Angle(DMSToDeg(neg, d, m, s) * math.Pi / 180)
 }
+
+// Deg returns the angle in degrees.
+func (a Angle) Deg() float64 { return float64(a) * 180 / math.Pi }
+
+// Fmt constructs a FmtAngle containing the value a.
+func (a Angle) Fmt() *FmtAngle { return &FmtAngle{Angle: a} }
+
+// Min returns the angle in minutes.
+func (a Angle) Min() float64 { return float64(a) * 180 / math.Pi * 60 }
 
 // Rad returns the angle in radians.
 //
 // This is the underlying representation and involves no scaling.
 func (a Angle) Rad() float64 { return float64(a) }
 
-// Deg returns the angle in degrees.
-func (a Angle) Deg() float64 { return float64(a) * 180 / math.Pi }
+// Sec returns the angle in seconds.
+func (a Angle) Sec() float64 { return float64(a) * 180 / math.Pi * 3600 }
 
 // FmtAngle is represents a formattable angle.
 type FmtAngle struct {
 	Angle
 	Err error // set each time the value is formatted.
-}
-
-// NewFmtAngle constructs a new FmtAngle from a float64 in radians.
-func NewFmtAngle(rad float64) *FmtAngle {
-	return &FmtAngle{Angle: Angle(rad)}
-}
-
-// SetDMS sets the value of an FmtAngle from sign, degree, minute, and second
-// components.
-//
-// The receiver is returned as a convenience.
-//
-// For argument neg, pass '-' to set a negative angle.  Any other argument
-// value, such as ' ', '+', or simply 0, sets the angle non-negative.
-func (a *FmtAngle) SetDMS(neg byte, d, m int, s float64) *FmtAngle {
-	a.Angle = NewAngle(neg, d, m, s)
-	return a
 }
 
 // Format implements fmt.Formatter
@@ -211,9 +186,139 @@ func (a *FmtAngle) Format(f fmt.State, c rune) {
 	a.Err = s.writeFormatted()
 }
 
+// SetDMS sets the value of an FmtAngle from sign, degree, minute, and second
+// components.
+//
+// The receiver is returned as a convenience.
+//
+// For argument neg, pass '-' to negate the result.  Any other argument
+// value, such as ' ', '+', or simply 0, leaves the result non-negated.
+func (a *FmtAngle) SetDMS(neg byte, d, m int, s float64) *FmtAngle {
+	a.Angle = NewAngle(neg, d, m, s)
+	return a
+}
+
 // String implements fmt.Stringer
-func (a *FmtAngle) String() string {
-	return fmt.Sprintf("%s", a)
+func (a *FmtAngle) String() string { return fmt.Sprintf("%s", a) }
+
+// FmtHourAngle represents a formattable angle hour.
+type FmtHourAngle struct {
+	HourAngle
+	Err error // set each time the value is formatted.
+}
+
+// Format implements fmt.Formatter
+func (ha *FmtHourAngle) Format(f fmt.State, c rune) {
+	s := &state{
+		State:  f,
+		verb:   c,
+		hrDeg:  ha.Hour(),
+		caller: fsHourAngle,
+	}
+	ha.Err = s.writeFormatted()
+}
+
+// SetHMS sets the value of the HourAngle from time components sign, hour,
+// minute, and second.
+//
+// The receiver is returned as a convenience.
+//
+// For argument neg, pass '-' to set a negative hour angle.  Any other argument
+// value, such as ' ', '+', or simply 0, sets the hour angle non-negative.
+func (ha *FmtHourAngle) SetHMS(neg byte, h, m int, s float64) *FmtHourAngle {
+	ha.HourAngle = NewHourAngle(neg, h, m, s)
+	return ha
+}
+
+// String implements fmt.Stringer
+func (ha *FmtHourAngle) String() string {
+	return fmt.Sprintf("%s", ha)
+}
+
+// FmtRA represents a formattable right ascension.
+type FmtRA struct {
+	RA
+	Err error // set each time the value is formatted.
+}
+
+// Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
+func (ra *FmtRA) Format(f fmt.State, c rune) {
+	s := &state{
+		State: f,
+		verb:  c,
+		// pmod in case ra.RA was directly set to something out of range
+		hrDeg:  pmod(ra.Hour(), 24),
+		caller: fsRA,
+	}
+	ra.Err = s.writeFormatted()
+}
+
+// SetHMS sets the value of RA from components hour, minute, and second.
+//
+// Negative values are not supported, and SetHMS wraps values larger than 24
+// to the range [0,24) hours.
+//
+// The receiver is returned as a convenience.
+func (ra *FmtRA) SetHMS(h, m int, s float64) *FmtRA {
+	ra.RA = NewRA(h, m, s)
+	return ra
+}
+
+// SetRad sets the value of RA from radians.
+//
+// The value is wrapped to the range [0,24) hours.
+//
+// The receiver is returned as a convenience.
+func (ra *FmtRA) SetRad(rad float64) *FmtRA {
+	ra.RA = RA(pmod(rad, 2*math.Pi))
+	return ra
+}
+
+// String implements fmt.Stringer
+func (ra *FmtRA) String() string {
+	return fmt.Sprintf("%s", ra)
+}
+
+// FmtTime represents a formattable duration or relative time.
+type FmtTime struct {
+	Time
+	Err error // set each time the value is formatted.
+}
+
+// Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
+func (t *FmtTime) Format(f fmt.State, c rune) {
+	s := &state{
+		State:  f,
+		verb:   c,
+		hrDeg:  t.Hour(),
+		caller: fsTime,
+	}
+	t.Err = s.writeFormatted()
+}
+
+// SetDays sets the value of FmtTime from a number of days.
+//
+// The receiver is returned as a convenience.
+func (t *FmtTime) SetDays(d float64) *FmtTime {
+	t.Time = Time(d * 86400)
+	return t
+}
+
+// SetHMS sets the value of FmtTime from time components sign, hour,
+// minute, and second.
+//
+// The receiver is returned as a convenience.
+//
+// For argument neg, pass '-' to set a negative time delta.  Any other
+// argument value, such as ' ', '+', or simply 0, sets a non-negative time.
+func (t *FmtTime) SetHMS(neg byte, h, m int, s float64) *FmtTime {
+	t.Time = NewTime(neg, h, m, s)
+	return t
+}
+
+// String implements fmt.Stringer
+func (t *FmtTime) String() string {
+	return fmt.Sprintf("%s", t)
 }
 
 // HourAngle represents an angle corresponding to angular rotation of
@@ -232,52 +337,15 @@ func NewHourAngle(neg byte, h, m int, s float64) HourAngle {
 	return HourAngle(DMSToDeg(neg, h, m, s) * 15 * math.Pi / 180)
 }
 
-// Rad returns the hour angle as an angle in radians.
-//
-// This is the underlying representation and involves no scaling.
-func (a HourAngle) Rad() float64 { return float64(a) }
+func (a HourAngle) Fmt() *FmtHourAngle { return &FmtHourAngle{HourAngle: a} }
 
 // Hour returns the hour angle as hours of time.
 func (a HourAngle) Hour() float64 { return float64(a) * 12 / math.Pi }
 
-// FmtHourAngle represents a formattable angle hour.
-type FmtHourAngle struct {
-	HourAngle
-	Err error // set each time the value is formatted.
-}
-
-// NewFmtHourAngle constructs a new FmtHourAngle from a float64 in radians.
-func NewFmtHourAngle(rad float64) *FmtHourAngle {
-	return &FmtHourAngle{HourAngle: HourAngle(rad)}
-}
-
-// SetHMS sets the value of the HourAngle from time components sign, hour,
-// minute, and second.
+// Rad returns the hour angle as an angle in radians.
 //
-// The receiver is returned as a convenience.
-//
-// For argument neg, pass '-' to set a negative hour angle.  Any other argument
-// value, such as ' ', '+', or simply 0, sets the hour angle non-negative.
-func (ha *FmtHourAngle) SetHMS(neg byte, h, m int, s float64) *FmtHourAngle {
-	ha.HourAngle = NewHourAngle(neg, h, m, s)
-	return ha
-}
-
-// Format implements fmt.Formatter
-func (ha *FmtHourAngle) Format(f fmt.State, c rune) {
-	s := &state{
-		State:  f,
-		verb:   c,
-		hrDeg:  ha.Hour(),
-		caller: fsHourAngle,
-	}
-	ha.Err = s.writeFormatted()
-}
-
-// String implements fmt.Stringer
-func (ha *FmtHourAngle) String() string {
-	return fmt.Sprintf("%s", ha)
-}
+// This is the underlying representation and involves no scaling.
+func (a HourAngle) Rad() float64 { return float64(a) }
 
 // RA represents a value of right ascension.
 //
@@ -286,60 +354,26 @@ type RA float64
 
 // NewRA constructs a new RA value from hour, minute, and second components.
 //
-// Negative values are not supported, and NewRA wraps values larger than 24
-// to the range [0,24) hours.
+// The result is wrapped to the range [0,2π), or [0,24) hours.
 func NewRA(h, m int, s float64) RA {
-	hr := math.Mod(DMSToDeg(0, h, m, s), 24)
-	return RA(hr * 15 * math.Pi / 180)
+	// conversion factor: 12 hours in a half revolution
+	return RAFromRad(DMSToDeg(0, h, m, s) * math.Pi / 12)
 }
+
+// NewRA constructs a new RA value from radians.
+//
+// The result is wrapped to the range [0,2π), or [0,24) hours.
+func RAFromRad(rad float64) RA { return RA(pmod(rad, 2*math.Pi)) }
+
+func (ra RA) Fmt() *FmtRA { return &FmtRA{RA: ra} }
+
+// Hour returns the right ascension as hours of time.
+func (ra RA) Hour() float64 { return float64(ra) * 12 / math.Pi }
 
 // Rad returns the right ascension as an angle in radians.
 //
 // This is the underlying representation and involves no scaling.
 func (ra RA) Rad() float64 { return float64(ra) }
-
-// Hour returns the right ascension as hours of time.
-func (ra RA) Hour() float64 { return float64(ra) * 12 / math.Pi }
-
-// FmtRA represents a formattable right ascension.
-type FmtRA struct {
-	RA
-	Err error // set each time the value is formatted.
-}
-
-// NewFmtRA constructs a new FmtRA from a float64 in radians.
-//
-// The value is wrapped to the range [0,24) hours.
-func NewFmtRA(rad float64) *FmtRA {
-	return &FmtRA{RA: RA(pmod(rad, 2*math.Pi))}
-}
-
-// SetHMS sets the value of RA from components hour, minute, and second.
-// Negative values are not supported, and SetHMS wraps values larger than 24
-// to the range [0,24) hours.
-//
-// The receiver is returned as a convenience.
-func (ra *FmtRA) SetHMS(h, m int, s float64) *FmtRA {
-	ra.RA = NewRA(h, m, s)
-	return ra
-}
-
-// Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
-func (ra *FmtRA) Format(f fmt.State, c rune) {
-	s := &state{
-		State: f,
-		verb:  c,
-		// pmod in case ra.RA was directly set to something out of range
-		hrDeg:  pmod(ra.Hour(), 24),
-		caller: fsRA,
-	}
-	ra.Err = s.writeFormatted()
-}
-
-// String implements fmt.Stringer
-func (ra *FmtRA) String() string {
-	return fmt.Sprintf("%s", ra)
-}
 
 // Time represents a duration or relative time.
 //
@@ -360,61 +394,45 @@ func NewTime(neg byte, h, m int, s float64) Time {
 	return Time(s)
 }
 
+func TimeFromDays(d float64) Time {
+	return Time(d * 86400)
+}
+
+// where 2 Pi radians = 1 day.
+func TimeFromRad(rad float64) Time {
+	return Time(rad * math.Pi / 43200)
+}
+
+// Day returns time in days.
+func (t Time) Day() float64 { return float64(t) / 3600 / 24 }
+
+func (t Time) Fmt() *FmtTime { return &FmtTime{Time: t} }
+
+// Hour returns time in hours.
+func (t Time) Hour() float64 { return float64(t) / 3600 }
+
+// Min returns time in minutes.
+func (t Time) Min() float64 { return float64(t) / 60 }
+
+// Rad returns time in radians, where 1 day = 2 Pi radians.
+func (t Time) Rad() float64 { return float64(t) * math.Pi / 12 / 3600 }
+
 // Sec returns the time in seconds.
 //
 // This is the underlying representation and involves no scaling.
 func (t Time) Sec() float64 { return float64(t) }
 
-// Min returns time in minutes.
-func (t Time) Min() float64 { return float64(t) / 60 }
-
-// Hour returns time in hours.
-func (t Time) Hour() float64 { return float64(t) / 3600 }
-
-// Day returns time in days.
-func (t Time) Day() float64 { return float64(t) / 3600 / 24 }
-
-// Rad returns time in radians, where 1 day = 2 Pi radians.
-func (t Time) Rad() float64 { return float64(t) * math.Pi / 12 / 3600 }
-
-// FmtTime represents a formattable duration or relative time.
-type FmtTime struct {
-	Time
-	Err error // set each time the value is formatted.
-}
-
-// NewFmtTime constructs a new FmtTime from a float64 in seconds.
-func NewFmtTime(sec float64) *FmtTime {
-	return &FmtTime{Time: Time(sec)}
-}
-
-// SetHMS sets the value of FmtTime from time components sign, hour,
-// minute, and second.
-//
-// The receiver is returned as a convenience.
-//
-// For argument neg, pass '-' to set a negative time delta.  Any other
-// argument value, such as ' ', '+', or simply 0, sets a non-negative time.
-func (t *FmtTime) SetHMS(neg byte, h, m int, s float64) *FmtTime {
-	t.Time = NewTime(neg, h, m, s)
-	return t
-}
-
-// Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
-func (t *FmtTime) Format(f fmt.State, c rune) {
-	s := &state{
-		State:  f,
-		verb:   c,
-		hrDeg:  t.Hour(),
-		caller: fsTime,
-	}
-	t.Err = s.writeFormatted()
-}
-
-// String implements fmt.Stringer
-func (t *FmtTime) String() string {
-	return fmt.Sprintf("%s", t)
-}
+const (
+	secAppend    = 's'
+	secCombine   = 'c'
+	secInsert    = 'd'
+	minAppend    = 'm'
+	minCombine   = 'n'
+	minInsert    = 'o'
+	hrDegAppend  = 'h'
+	hrDegCombine = 'i'
+	hrDegInsert  = 'j'
+)
 
 const (
 	fsAngle = iota
@@ -508,6 +526,29 @@ valErr:
 	}
 	s.Write(bytes.Repeat([]byte{'*'}, width))
 	return err
+}
+
+var (
+	tenf = [16]float64{1e0, 1e1, 1e2, 1e3, 1e4, 1e5,
+		1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15}
+	teni = [16]int64{1e0, 1e1, 1e2, 1e3, 1e4, 1e5,
+		1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15}
+)
+
+// sig verifies and returns significant digits of a number at a precision.
+//
+// x must be >= 0.  prec must be 0..15.
+//
+// the digits are returned as xs = int64(x * 10**prec + .5), as long as
+// the result xs is small enough that all digits are significant given
+// float64 representation.
+// if xs does not represent a fully significant result -1 is returned.
+func sig(x float64, prec int) int64 {
+	xs := x*tenf[prec] + .5
+	if !(xs <= 1<<52) { // 52 mantissa bits in float64
+		return -1
+	}
+	return int64(xs)
 }
 
 func (s *state) decimalHrDeg() (string, error) {

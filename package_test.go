@@ -20,8 +20,8 @@ func Example_types() {
 	fmt.Printf(v, fa)
 
 	// HourAngle
-	ha := sexa.NewHourAngle('-', 12, 34, 45.6) // true means negative
-	fha := sexa.NewFmtHourAngle(ha.Rad())      // Fmt_ constructor
+	ha := sexa.NewHourAngle('-', 12, 34, 45.6)
+	fha := ha.Fmt() // Fmt_ constructor
 	fmt.Printf(v, fha)
 
 	// RA
@@ -40,7 +40,7 @@ func Example_types() {
 }
 
 func Example_verbs() {
-	a := new(sexa.FmtAngle).SetDMS(' ', 12, 34, 45.6)
+	a := sexa.NewAngle(' ', 12, 34, 45.6).Fmt()
 	fmt.Println("Full sexagesimal formats")
 	fmt.Printf("%.1s\n", a)
 	fmt.Printf("%.1c\n", a)
@@ -69,7 +69,7 @@ func Example_verbs() {
 }
 
 func Example_flags() {
-	a := new(sexa.FmtAngle).SetDMS(' ', 0, 1, 2)
+	a := sexa.NewAngle(' ', 0, 1, 2).Fmt()
 	fmt.Printf("%+s\n", a)
 	fmt.Printf("% s\n", a)
 	fmt.Printf("%#s\n", a)
@@ -85,7 +85,7 @@ func Example_flags() {
 
 func Example_width() {
 	// fixed width formats
-	a := new(sexa.FmtAngle).SetDMS(' ', 0, 1, 2.34)
+	a := sexa.NewAngle(' ', 0, 1, 2.34).Fmt()
 	fmt.Printf("|%2.3s|\n", a)
 	fmt.Printf("|%02.3s|\n", a)
 
