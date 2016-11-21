@@ -362,7 +362,7 @@ func ExampleTime_Rad() {
 	t := sexa.NewTime(0, 12, 0, 0)
 	fmt.Println(t.Rad())
 	// Output:
-	// 3.1415926535897936
+	// 3.141592653589793
 }
 
 func TestOverflow(t *testing.T) {

@@ -138,36 +138,8 @@ func StripUnit(d, unit string) (stripped string, ok bool) {
 	return d, false // otherwise don't mess with it
 }
 
-// Angle represents a general purpose angle.
-//
-// Unit is radians.
-type Angle float64
-
-// NewAngle constructs a new Angle value from sign, degree, minute, and second
-// components.
-//
-// For argument neg, pass '-' to negate the result.  Any other argument
-// value, such as ' ', '+', or simply 0, leaves the result non-negated.
-func NewAngle(neg byte, d, m int, s float64) Angle {
-	return Angle(DMSToDeg(neg, d, m, s) * math.Pi / 180)
-}
-
-// Deg returns the angle in degrees.
-func (a Angle) Deg() float64 { return float64(a) * 180 / math.Pi }
-
 // Fmt constructs a FmtAngle containing the value a.
 func (a Angle) Fmt() *FmtAngle { return &FmtAngle{Angle: a} }
-
-// Min returns the angle in minutes.
-func (a Angle) Min() float64 { return float64(a) * 180 / math.Pi * 60 }
-
-// Rad returns the angle in radians.
-//
-// This is the underlying representation and involves no scaling.
-func (a Angle) Rad() float64 { return float64(a) }
-
-// Sec returns the angle in seconds.
-func (a Angle) Sec() float64 { return float64(a) * 180 / math.Pi * 3600 }
 
 // FmtAngle is represents a formattable angle.
 type FmtAngle struct {
@@ -321,106 +293,11 @@ func (t *FmtTime) String() string {
 	return fmt.Sprintf("%s", t)
 }
 
-// HourAngle represents an angle corresponding to angular rotation of
-// the Earth in a specified time.
-//
-// Unit is radians.
-type HourAngle float64
-
-// NewHourAngle constructs a new HourAngle value from sign, hour, minute,
-// and second components.
-//
-// For argument neg, pass '-' to indicate a negative hour angle.  Any other
-// argument value, such as ' ', '+', or simply 0, leaves the result
-// non-negative.
-func NewHourAngle(neg byte, h, m int, s float64) HourAngle {
-	return HourAngle(DMSToDeg(neg, h, m, s) * 15 * math.Pi / 180)
-}
-
 func (a HourAngle) Fmt() *FmtHourAngle { return &FmtHourAngle{HourAngle: a} }
-
-// Hour returns the hour angle as hours of time.
-func (a HourAngle) Hour() float64 { return float64(a) * 12 / math.Pi }
-
-// Rad returns the hour angle as an angle in radians.
-//
-// This is the underlying representation and involves no scaling.
-func (a HourAngle) Rad() float64 { return float64(a) }
-
-// RA represents a value of right ascension.
-//
-// Unit is radians.
-type RA float64
-
-// NewRA constructs a new RA value from hour, minute, and second components.
-//
-// The result is wrapped to the range [0,2π), or [0,24) hours.
-func NewRA(h, m int, s float64) RA {
-	// conversion factor: 12 hours in a half revolution
-	return RAFromRad(DMSToDeg(0, h, m, s) * math.Pi / 12)
-}
-
-// NewRA constructs a new RA value from radians.
-//
-// The result is wrapped to the range [0,2π), or [0,24) hours.
-func RAFromRad(rad float64) RA { return RA(pmod(rad, 2*math.Pi)) }
 
 func (ra RA) Fmt() *FmtRA { return &FmtRA{RA: ra} }
 
-// Hour returns the right ascension as hours of time.
-func (ra RA) Hour() float64 { return float64(ra) * 12 / math.Pi }
-
-// Rad returns the right ascension as an angle in radians.
-//
-// This is the underlying representation and involves no scaling.
-func (ra RA) Rad() float64 { return float64(ra) }
-
-// Time represents a duration or relative time.
-//
-// Unit is seconds.
-type Time float64
-
-// NewTime constructs a new Time value from sign, hour, minute, and
-// second components.
-//
-// For argument neg, pass '-' to indicate a negative time delta.  Any other
-// argument value, such as ' ', '+', or simply 0, leaves the result
-// non-negative.
-func NewTime(neg byte, h, m int, s float64) Time {
-	s += float64((h*60 + m) * 60)
-	if neg == '-' {
-		return Time(-s)
-	}
-	return Time(s)
-}
-
-func TimeFromDays(d float64) Time {
-	return Time(d * 86400)
-}
-
-// where 2 Pi radians = 1 day.
-func TimeFromRad(rad float64) Time {
-	return Time(rad * math.Pi / 43200)
-}
-
-// Day returns time in days.
-func (t Time) Day() float64 { return float64(t) / 3600 / 24 }
-
 func (t Time) Fmt() *FmtTime { return &FmtTime{Time: t} }
-
-// Hour returns time in hours.
-func (t Time) Hour() float64 { return float64(t) / 3600 }
-
-// Min returns time in minutes.
-func (t Time) Min() float64 { return float64(t) / 60 }
-
-// Rad returns time in radians, where 1 day = 2 Pi radians.
-func (t Time) Rad() float64 { return float64(t) * math.Pi / 12 / 3600 }
-
-// Sec returns the time in seconds.
-//
-// This is the underlying representation and involves no scaling.
-func (t Time) Sec() float64 { return float64(t) }
 
 const (
 	secAppend    = 's'
