@@ -4,11 +4,11 @@ package sexa_test
 
 import (
 	"fmt"
-	"log"
-	"math"
+	"reflect"
 	"testing"
 
 	"github.com/soniakeys/sexagesimal"
+	"github.com/soniakeys/unit"
 )
 
 func ExampleCombineUnit() {
@@ -20,27 +20,6 @@ func ExampleCombineUnit() {
 	// Output:
 	// Decimal point: 1.25
 	// Degree unit with combining form of decimal point: 1°̣25
-}
-
-func ExampleDMSToDeg() {
-	// Typical usage:  non-negative d, m, s, and '-' to indicate negative:
-	fmt.Println(sexa.DMSToDeg('-', 20, 30, 0))
-	// Putting the minus sign on d is not equivalent:
-	fmt.Println(sexa.DMSToDeg(' ', -20, 30, 0))
-	fmt.Println()
-	// Other combinations can give the same result though:
-	fmt.Println(sexa.DMSToDeg(' ', -20, -30, 0))
-	fmt.Println(sexa.DMSToDeg(' ', -21, 30, 0))
-	fmt.Println(sexa.DMSToDeg(' ', -22, 90, 0))
-	fmt.Println(sexa.DMSToDeg('-', 22, -90, 0))
-	// Output:
-	// -20.5
-	// -19.5
-	//
-	// -20.5
-	// -20.5
-	// -20.5
-	// -20.5
 }
 
 // see comments below at TestInsertUnit
@@ -198,51 +177,25 @@ func TestStrip(t *testing.T) {
 	}
 }
 
-func ExampleNewAngle() {
-	a := sexa.NewAngle('-', 13, 47, 22)
-	fmt.Println(a.Fmt())
-	fmt.Println(sexa.NewAngle('-', 0, 32, 41).Fmt())
-	fmt.Println(sexa.NewAngle(' ', 0, 32, 41).Fmt())
-	fmt.Println(sexa.NewAngle('+', 0, 32, 41).Fmt())
-	fmt.Println(sexa.NewAngle(0, 0, 32, 41).Fmt())
+func ExampleFmtAngle() {
+	a := unit.NewAngle('-', 13, 47, 22)
+	f := sexa.FmtAngle(a)
+	fmt.Println(reflect.TypeOf(f), f)
 	// Output:
-	// -13°47′22″
-	// -32′41″
-	// 32′41″
-	// 32′41″
-	// 32′41″
+	// *sexa.Angle -13°47′22″
 }
 
-func ExampleAngle_Deg() {
-	a := sexa.NewAngle(' ', 3, 30, 0)
-	fmt.Println(a.Deg())
-	// Output:
-	// 3.5
-}
-
-func ExampleAngle_Fmt() {
-	a := sexa.NewAngle(' ', 180, 0, 0)
-	f := a.Fmt()
+func ExampleAngle() {
+	f := sexa.FmtAngle(unit.NewAngle(' ', 180, 0, 0))
 	fmt.Println(f)
 	fmt.Printf("%#v\n", *f)
 	// Output:
 	// 180°0′0″
-	// sexa.FmtAngle{Angle:3.141592653589793, Err:error(nil)}
+	// sexa.Angle{Angle:3.141592653589793, Err:error(nil)}
 }
 
-func ExampleFmtAngle() {
-	f := sexa.NewAngle(' ', 135, 0, 0).Fmt()
-	if s := fmt.Sprint(f); f.Err != nil {
-		log.Println(f.Err)
-	} else {
-		fmt.Println(s)
-	}
-	// Output:
-	// 135°0′0″
-}
-
-func ExampleFmtAngle_verb() {
-	f := sexa.NewAngle(' ', 135, 0, 0).Fmt()
+func ExampleAngle_verb() {
+	f := sexa.FmtAngle(unit.NewAngle(' ', 135, 0, 0))
 	fmt.Printf("%z\n", f) // produces no output
 	if f.Err != nil {
 		fmt.Println(f.Err)
@@ -251,8 +204,8 @@ func ExampleFmtAngle_verb() {
 	// %!z(BADVERB)
 }
 
-func ExampleFmtAngle_width() {
-	f := sexa.NewAngle(' ', 135, 0, 0).Fmt()
+func ExampleAngle_width() {
+	f := sexa.FmtAngle(unit.NewAngle(' ', 135, 0, 0))
 	fmt.Printf("%2s\n", f) // fills field with *s
 	if f.Err != nil {
 		fmt.Println(f.Err)
@@ -262,124 +215,60 @@ func ExampleFmtAngle_width() {
 	// Degrees overflow width
 }
 
-func ExampleAngle_Rad() {
-	a := sexa.NewAngle(' ', 180, 0, 0)
-	fmt.Println(a.Rad())
-	// Output:
-	// 3.141592653589793
-}
-
-func ExampleFmtAngle_SetDMS() {
-	var a sexa.FmtAngle
-	a.SetDMS(' ', 23, 26, 44)
-	fmt.Println(&a)
-	// Output:
-	// 23°26′44″
-}
-
-func ExampleFmtAngle_String() {
-	a := sexa.NewAngle(' ', 23, 26, 44).Fmt()
+func ExampleAngle_String() {
+	a := sexa.FmtAngle(unit.NewAngle(' ', 23, 26, 44))
 	s := a.String()
 	fmt.Printf("%T %q\n", s, s)
 	// Output:
 	// string "23°26′44″"
 }
 
-func ExampleNewRA() {
-	a := sexa.NewRA(9, 14, 55.8)
-	fmt.Printf("%.6f\n", math.Tan(a.Rad()))
-	// Output:
-	// -0.877517
-}
-
-func ExampleFmtHourAngle_String() {
-	h := sexa.NewHourAngle('-', 12, 34, 45.6).Fmt()
+func ExampleHourAngle_String() {
+	h := sexa.FmtHourAngle(unit.NewHourAngle('-', 12, 34, 45.6))
 	s := h.String()
 	fmt.Printf("%T %q\n", s, s)
 	// Output:
 	// string "-12ʰ34ᵐ46ˢ"
 }
 
-func ExampleFmtRA_String() {
-	h := new(sexa.FmtRA).SetHMS(12, 34, 45.6)
-	s := h.String()
+func ExampleRA_String() {
+	ra := sexa.FmtRA(unit.NewRA(12, 34, 45.6))
+	s := ra.String()
 	fmt.Printf("%T %q\n", s, s)
 	// Output:
 	// string "12ʰ34ᵐ46ˢ"
 }
 
-func ExampleFmtTime() {
-	a := new(sexa.FmtTime).SetHMS(' ', 15, 22, 7)
-	fmt.Printf("%0s\n", a)
+func ExampleTime() {
+	t := sexa.FmtTime(unit.NewTime(' ', 15, 22, 7))
+	fmt.Printf("%0s\n", t)
 	// Output:
 	// 15ʰ22ᵐ07ˢ
 }
 
-func ExampleFmtTime_String() {
-	h := new(sexa.FmtTime).SetHMS('-', 12, 34, 45.6)
-	s := h.String()
+func ExampleTime_String() {
+	t := sexa.FmtTime(unit.NewTime('-', 12, 34, 45.6))
+	s := t.String()
 	fmt.Printf("%T %q\n", s, s)
 	// Output:
 	// string "-12ʰ34ᵐ46ˢ"
 }
 
-func ExampleNewTime() {
-	t := sexa.NewTime('-', 12, 34, 45.6)
-	fmt.Println(t.Fmt())
-	// Output:
-	// -12ʰ34ᵐ46ˢ
-}
-
-func ExampleTime_Sec() {
-	t := sexa.NewTime(0, 0, 1, 30)
-	fmt.Println(t.Sec())
-	// Output:
-	// 90
-}
-
-func ExampleTime_Min() {
-	t := sexa.NewTime(0, 0, 1, 30)
-	fmt.Println(t.Min())
-	// Output:
-	// 1.5
-}
-
-func ExampleTime_Hour() {
-	t := sexa.NewTime(0, 2, 15, 0)
-	fmt.Println(t.Hour())
-	// Output:
-	// 2.25
-}
-
-func ExampleTime_Day() {
-	t := sexa.NewTime(0, 48, 36, 0)
-	fmt.Println(t.Day())
-	// Output:
-	// 2.025
-}
-
-func ExampleTime_Rad() {
-	t := sexa.NewTime(0, 12, 0, 0)
-	fmt.Println(t.Rad())
-	// Output:
-	// 3.141592653589793
-}
-
 func TestOverflow(t *testing.T) {
-	a := sexa.NewAngle(' ', 23, 26, 44).Fmt()
+	a := sexa.FmtAngle(unit.NewAngle(' ', 23, 26, 44))
 	if f := fmt.Sprintf("%03s", a); f != "023°26′44″" {
 		t.Fatal(f)
 	}
-	a.SetDMS(' ', 4423, 26, 44)
+	a.Angle = unit.NewAngle(' ', 4423, 26, 44)
 	if f := fmt.Sprintf("%03s", a); f != "**********" {
 		t.Fatal(f)
 	}
 }
 
-func TestFmtLeadingZero(t *testing.T) {
+func TestLeadingZero(t *testing.T) {
 	// regression test
-	a := sexa.Angle(.089876 * math.Pi / 180)
-	got := fmt.Sprintf("%.6h", a.Fmt())
+	a := unit.AngleFromDeg(.089876)
+	got := fmt.Sprintf("%.6h", sexa.FmtAngle(a))
 	want := "0.089876°"
 	if got != want {
 		t.Fatalf("Format %%.6h = %s, want %s", got, want)

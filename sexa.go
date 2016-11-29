@@ -9,10 +9,12 @@ import (
 	"math"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/soniakeys/unit"
 )
 
-// UnitSymbols holds symbols for formatting FmtAngle, FmtHourAngle, FmtRA,
-// and FmtTime types.
+// UnitSymbols holds symbols for formatting Angle, HourAngle, RA,
+// and Time types.
 type UnitSymbols struct {
 	HrDeg, Min, Sec string
 }
@@ -31,7 +33,7 @@ var (
 )
 
 // Predefined errors indicate that a value could not be formatted.
-// Custom formatters of FmtAngle, FmtHourAngle, FmtRA, and FmtTime types
+// Custom formatters of Angle, HourAngle, RA, and Time types
 // may store these in the Err field of the value being formatted.
 var (
 	ErrLossOfPrecision = errors.New("Loss of precision")
@@ -61,28 +63,6 @@ func CombineUnit(d, unit string) string {
 	}
 	// insert unit, replace DecSep occurrence with DecCombine
 	return d[:i] + unit + string(DecCombine) + d[i+len(DecSep):]
-}
-
-// DMSToDeg converts from parsed sexagesimal angle components to decimal
-// degrees.
-//
-// Typically you pass non-negative values for d, m, and s, and to indicate
-// a negative value, pass '-' for neg.  Any other value, such as ' ', '+',
-// or simply 0, leaves the result non-negative.
-//
-// There are no limits on d, m, or s however.  Negative values or values
-// > 60 for m and s are allowed for example.  The segment values are
-// combined and then if neg is '-' that sum is negated.
-//
-// Also, the interpretation of d as degrees is arbitrary.  The function works
-// as well on hours minutes and seconds.  Generally, m is a sexagesimal part
-// of d and s is a sexagesimal part of m.
-func DMSToDeg(neg byte, d, m int, s float64) float64 {
-	s = (float64((d*60+m)*60) + s) / 3600
-	if neg == '-' {
-		return -s
-	}
-	return s
 }
 
 // InsertUnit inserts a unit indicator into a formatted decimal number.
@@ -138,17 +118,17 @@ func StripUnit(d, unit string) (stripped string, ok bool) {
 	return d, false // otherwise don't mess with it
 }
 
-// Fmt constructs a FmtAngle containing the value a.
-func (a Angle) Fmt() *FmtAngle { return &FmtAngle{Angle: a} }
+// FmtAngle constructs an formattable Angle containing the value a.
+func FmtAngle(a unit.Angle) *Angle { return &Angle{Angle: a} }
 
-// FmtAngle is represents a formattable angle.
-type FmtAngle struct {
-	Angle
+// Angle is represents a formattable angle.
+type Angle struct {
+	unit.Angle
 	Err error // set each time the value is formatted.
 }
 
 // Format implements fmt.Formatter
-func (a *FmtAngle) Format(f fmt.State, c rune) {
+func (a *Angle) Format(f fmt.State, c rune) {
 	s := state{
 		State:  f,
 		verb:   c,
@@ -158,29 +138,17 @@ func (a *FmtAngle) Format(f fmt.State, c rune) {
 	a.Err = s.writeFormatted()
 }
 
-// SetDMS sets the value of an FmtAngle from sign, degree, minute, and second
-// components.
-//
-// The receiver is returned as a convenience.
-//
-// For argument neg, pass '-' to negate the result.  Any other argument
-// value, such as ' ', '+', or simply 0, leaves the result non-negated.
-func (a *FmtAngle) SetDMS(neg byte, d, m int, s float64) *FmtAngle {
-	a.Angle = NewAngle(neg, d, m, s)
-	return a
-}
-
 // String implements fmt.Stringer
-func (a *FmtAngle) String() string { return fmt.Sprintf("%s", a) }
+func (a *Angle) String() string { return fmt.Sprintf("%s", a) }
 
-// FmtHourAngle represents a formattable angle hour.
-type FmtHourAngle struct {
-	HourAngle
+// HourAngle represents a formattable angle hour.
+type HourAngle struct {
+	unit.HourAngle
 	Err error // set each time the value is formatted.
 }
 
 // Format implements fmt.Formatter
-func (ha *FmtHourAngle) Format(f fmt.State, c rune) {
+func (ha *HourAngle) Format(f fmt.State, c rune) {
 	s := &state{
 		State:  f,
 		verb:   c,
@@ -190,75 +158,38 @@ func (ha *FmtHourAngle) Format(f fmt.State, c rune) {
 	ha.Err = s.writeFormatted()
 }
 
-// SetHMS sets the value of the HourAngle from time components sign, hour,
-// minute, and second.
-//
-// The receiver is returned as a convenience.
-//
-// For argument neg, pass '-' to set a negative hour angle.  Any other argument
-// value, such as ' ', '+', or simply 0, sets the hour angle non-negative.
-func (ha *FmtHourAngle) SetHMS(neg byte, h, m int, s float64) *FmtHourAngle {
-	ha.HourAngle = NewHourAngle(neg, h, m, s)
-	return ha
-}
-
 // String implements fmt.Stringer
-func (ha *FmtHourAngle) String() string {
-	return fmt.Sprintf("%s", ha)
-}
+func (ha *HourAngle) String() string { return fmt.Sprintf("%s", ha) }
 
-// FmtRA represents a formattable right ascension.
-type FmtRA struct {
-	RA
+// RA represents a formattable right ascension.
+type RA struct {
+	unit.RA
 	Err error // set each time the value is formatted.
 }
 
 // Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
-func (ra *FmtRA) Format(f fmt.State, c rune) {
+func (ra *RA) Format(f fmt.State, c rune) {
 	s := &state{
 		State: f,
 		verb:  c,
 		// pmod in case ra.RA was directly set to something out of range
-		hrDeg:  pmod(ra.Hour(), 24),
+		hrDeg:  unit.PMod(ra.Hour(), 24),
 		caller: fsRA,
 	}
 	ra.Err = s.writeFormatted()
 }
 
-// SetHMS sets the value of RA from components hour, minute, and second.
-//
-// Negative values are not supported, and SetHMS wraps values larger than 24
-// to the range [0,24) hours.
-//
-// The receiver is returned as a convenience.
-func (ra *FmtRA) SetHMS(h, m int, s float64) *FmtRA {
-	ra.RA = NewRA(h, m, s)
-	return ra
-}
-
-// SetRad sets the value of RA from radians.
-//
-// The value is wrapped to the range [0,24) hours.
-//
-// The receiver is returned as a convenience.
-func (ra *FmtRA) SetRad(rad float64) *FmtRA {
-	ra.RA = RA(pmod(rad, 2*math.Pi))
-	return ra
-}
-
 // String implements fmt.Stringer
-func (ra *FmtRA) String() string {
-	return fmt.Sprintf("%s", ra)
-}
+func (ra *RA) String() string { return fmt.Sprintf("%s", ra) }
 
-// FmtTime represents a formattable duration or relative time.
-type FmtTime struct {
-	Time
+// Time represents a formattable duration or relative time.
+type Time struct {
+	unit.Time
 	Err error // set each time the value is formatted.
 }
 
 // Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
-func (t *FmtTime) Format(f fmt.State, c rune) {
+func (t *Time) Format(f fmt.State, c rune) {
 	s := &state{
 		State:  f,
 		verb:   c,
@@ -268,36 +199,16 @@ func (t *FmtTime) Format(f fmt.State, c rune) {
 	t.Err = s.writeFormatted()
 }
 
-// SetDays sets the value of FmtTime from a number of days.
-//
-// The receiver is returned as a convenience.
-func (t *FmtTime) SetDays(d float64) *FmtTime {
-	t.Time = Time(d * 86400)
-	return t
-}
-
-// SetHMS sets the value of FmtTime from time components sign, hour,
-// minute, and second.
-//
-// The receiver is returned as a convenience.
-//
-// For argument neg, pass '-' to set a negative time delta.  Any other
-// argument value, such as ' ', '+', or simply 0, sets a non-negative time.
-func (t *FmtTime) SetHMS(neg byte, h, m int, s float64) *FmtTime {
-	t.Time = NewTime(neg, h, m, s)
-	return t
-}
-
 // String implements fmt.Stringer
-func (t *FmtTime) String() string {
-	return fmt.Sprintf("%s", t)
+func (t *Time) String() string { return fmt.Sprintf("%s", t) }
+
+func FmtHourAngle(h unit.HourAngle) *HourAngle {
+	return &HourAngle{HourAngle: h}
 }
 
-func (a HourAngle) Fmt() *FmtHourAngle { return &FmtHourAngle{HourAngle: a} }
+func FmtRA(ra unit.RA) *RA { return &RA{RA: ra} }
 
-func (ra RA) Fmt() *FmtRA { return &FmtRA{RA: ra} }
-
-func (t Time) Fmt() *FmtTime { return &FmtTime{Time: t} }
+func FmtTime(t unit.Time) *Time { return &Time{Time: t} }
 
 const (
 	secAppend    = 's'
@@ -583,17 +494,4 @@ func (s *state) decimalSec() (string, error) {
 	r = fmt.Sprintf(f, r, min, s.units.Min)
 last:
 	return r + s.lastSeg(sec, s.units.Sec, minEl), nil
-}
-
-// pmod returns a positive floating-point x mod y.
-//
-// For a positive argument y, it returns a value in the range [0,y).
-//
-// The function is not useful for negative values of y.
-func pmod(x, y float64) float64 {
-	r := math.Mod(x, y)
-	if r < 0 {
-		r += y
-	}
-	return r
 }

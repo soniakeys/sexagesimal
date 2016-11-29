@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/soniakeys/sexagesimal"
+	"github.com/soniakeys/unit"
 )
 
 func Example_types() {
@@ -15,22 +16,23 @@ func Example_types() {
 	v := "%.1v\n" // output shown with common format
 
 	// Angle
-	a := sexa.NewAngle(' ', 12, 34, 45.6) // construct from components
-	fa := &sexa.FmtAngle{Angle: a}        // Angle is an embedded field
+	a := unit.NewAngle(' ', 12, 34, 45.6) // construct from components
+	fa := &sexa.Angle{Angle: a}           // Angle is an embedded field
 	fmt.Printf(v, fa)
 
 	// HourAngle
-	ha := sexa.NewHourAngle('-', 12, 34, 45.6)
-	fha := ha.Fmt() // Fmt_ constructor
+	ha := unit.NewHourAngle('-', 12, 34, 45.6)
+	fha := sexa.FmtHourAngle(ha) // _ constructor
 	fmt.Printf(v, fha)
 
 	// RA
-	var fra sexa.FmtRA
-	fra.SetHMS(36, 34, 45.6) // RA has no sign, values wrapped to 24 hours
-	fmt.Printf(v, &fra)      // custom formatters need pointer receivers
+	var fra sexa.RA
+	// RA has no sign, values wrapped to 24 hours
+	fra.RA = unit.NewRA(36, 34, 45.6)
+	fmt.Printf(v, &fra) // custom formatters need pointer receivers
 
 	// Time
-	fmt.Printf(v, new(sexa.FmtTime).SetHMS(' ', 12, 34, 45.6))
+	fmt.Printf(v, sexa.FmtTime(unit.NewTime(' ', 12, 34, 45.6)))
 
 	// Output:
 	// 12°34′45.6″
@@ -40,7 +42,7 @@ func Example_types() {
 }
 
 func Example_verbs() {
-	a := sexa.NewAngle(' ', 12, 34, 45.6).Fmt()
+	a := sexa.FmtAngle(unit.NewAngle(' ', 12, 34, 45.6))
 	fmt.Println("Full sexagesimal formats")
 	fmt.Printf("%.1s\n", a)
 	fmt.Printf("%.1c\n", a)
@@ -69,7 +71,7 @@ func Example_verbs() {
 }
 
 func Example_flags() {
-	a := sexa.NewAngle(' ', 0, 1, 2).Fmt()
+	a := sexa.FmtAngle(unit.NewAngle(' ', 0, 1, 2))
 	fmt.Printf("%+s\n", a)
 	fmt.Printf("% s\n", a)
 	fmt.Printf("%#s\n", a)
@@ -85,7 +87,7 @@ func Example_flags() {
 
 func Example_width() {
 	// fixed width formats
-	a := sexa.NewAngle(' ', 0, 1, 2.34).Fmt()
+	a := sexa.FmtAngle(unit.NewAngle(' ', 0, 1, 2.34))
 	fmt.Printf("|%2.3s|\n", a)
 	fmt.Printf("|%02.3s|\n", a)
 
