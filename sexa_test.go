@@ -32,12 +32,11 @@ func TestCombineUnit_No_DecSep(t *testing.T) {
 		t.Error("got", got, "want", want)
 	}
 	// test case of empty DecSep.  same result wanted
-	sexa.DecSep = ""
-	got = sexa.CombineUnit(formattedNoDecSep, "°")
+	var noSep sexa.Symbols
+	got = noSep.CombineUnit(formattedNoDecSep, "°")
 	if got != want {
 		t.Error("got", got, "want", want)
 	}
-	sexa.DecSep = "." // restore package variable for other tests
 }
 
 func ExampleInsertUnit() {
@@ -68,12 +67,11 @@ func TestInsertUnit_No_DecSep(t *testing.T) {
 		t.Error("got", got, "want", want)
 	}
 	// test case of empty DecSep.  same result wanted
-	sexa.DecSep = ""
-	got = sexa.InsertUnit(formattedNoDecSep, "°")
+	var noSep sexa.Symbols
+	got = noSep.InsertUnit(formattedNoDecSep, "°")
 	if got != want {
 		t.Error("got", got, "want", want)
 	}
-	sexa.DecSep = "." // restore package variable for other tests
 }
 
 func ExampleStripUnit_combine() {
@@ -137,10 +135,9 @@ func ExampleStripUnit_strange() {
 	// separator before it removes the unit.
 	formatted = "1°.25"
 	fmt.Println("Formatted:   ", formatted)
-	sexa.DecSep = ""
-	s, ok = sexa.StripUnit(formatted, "°")
+	var noSep sexa.Symbols
+	s, ok = noSep.StripUnit(formatted, "°")
 	fmt.Println("Strip result:", s, ok)
-	sexa.DecSep = "."
 
 	// Output:
 	// Formatted:    1.25ʰ
@@ -191,7 +188,7 @@ func ExampleAngle() {
 	fmt.Printf("%#v\n", *f)
 	// Output:
 	// 180°0′0″
-	// sexa.Angle{Angle:3.141592653589793, Err:error(nil)}
+	// sexa.Angle{Angle:3.141592653589793, Sym:(*sexa.Symbols)(nil), Err:error(nil)}
 }
 
 func ExampleAngle_verb() {

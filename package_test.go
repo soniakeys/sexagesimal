@@ -87,22 +87,15 @@ func Example_flags() {
 
 func Example_width() {
 	// fixed width formats
-	a := sexa.FmtAngle(unit.NewAngle(' ', 0, 1, 2.34))
-	fmt.Printf("|%2.3s|\n", a)
-	fmt.Printf("|%02.3s|\n", a)
+	a := unit.NewAngle(' ', 0, 1, 2.34)
+	f := sexa.FmtAngle(a)
+	fmt.Printf("|%2.3s|\n", f)
+	fmt.Printf("|%02.3s|\n", f)
 
-	// example with implicit units and decimal position.
-
-	// save package values, restore on function return.
-	defer func(u sexa.UnitSymbols, d string) {
-		sexa.DMSUnits = u
-		sexa.DecSep = d
-	}(sexa.DMSUnits, sexa.DecSep)
-
-	// empty package variables.
-	sexa.DMSUnits = sexa.UnitSymbols{}
-	sexa.DecSep = ""
-	fmt.Printf("\n|%02.3s|\n", a)
+	// packed columns with no separators
+	var noSep sexa.Symbols
+	f = noSep.FmtAngle(a)
+	fmt.Printf("\n|%02.3s|\n", f)
 
 	// Output:
 	// | 0° 1′ 2.340″|

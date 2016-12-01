@@ -19,18 +19,27 @@ type UnitSymbols struct {
 	HrDeg, Min, Sec string
 }
 
-// DMSUnits, HMSUnits, and DecSep specify unit and decimal indicators.
+// Symbols species unit and decimal indicators
 //
-// You can change these as needed, for example to ASCII symbols.
+// Set these as needed, for example to ASCII symbols.
 // It is valid to use multiple character strings for DMSUnits and HMSUnits.
 // It is valid to use empty strings with a fixed width format.
 // DecCombine should be a rune of Unicode category "Mn" (mark, nonspacing).
-var (
-	DMSUnits   = UnitSymbols{"°", "′", "″"}
-	HMSUnits   = UnitSymbols{"ʰ", "ᵐ", "ˢ"}
-	DecSep     = "."
-	DecCombine = '\u0323'
-)
+type Symbols struct {
+	DMSUnits   UnitSymbols
+	HMSUnits   UnitSymbols
+	DecSep     string
+	DecCombine rune
+}
+
+// Default symbols are used by package top-level functions FmtAngle,
+// FmtHourAngle, FmtRA, and FmtTime.
+var Default = &Symbols{
+	DMSUnits:   UnitSymbols{"°", "′", "″"},
+	HMSUnits:   UnitSymbols{"ʰ", "ᵐ", "ˢ"},
+	DecSep:     ".",
+	DecCombine: '\u0323',
+}
 
 // Predefined errors indicate that a value could not be formatted.
 // Custom formatters of Angle, HourAngle, RA, and Time types
@@ -54,15 +63,19 @@ var (
 //
 // See also InsertUnit, StripUnit.
 func CombineUnit(d, unit string) string {
-	if DecSep == "" {
+	return Default.CombineUnit(d, unit)
+}
+
+func (sym *Symbols) CombineUnit(d, unit string) string {
+	if sym.DecSep == "" {
 		return d + unit // DecSep empty, append unit
 	}
-	i := strings.Index(d, DecSep)
+	i := strings.Index(d, sym.DecSep)
 	if i < 0 {
 		return d + unit // no DecSep found, append unit
 	}
 	// insert unit, replace DecSep occurrence with DecCombine
-	return d[:i] + unit + string(DecCombine) + d[i+len(DecSep):]
+	return d[:i] + unit + string(sym.DecCombine) + d[i+len(sym.DecSep):]
 }
 
 // InsertUnit inserts a unit indicator into a formatted decimal number.
@@ -76,10 +89,14 @@ func CombineUnit(d, unit string) string {
 //
 // See also CombineUnit, StripUnit.
 func InsertUnit(d, unit string) string {
-	if DecSep == "" {
+	return Default.InsertUnit(d, unit)
+}
+
+func (sym *Symbols) InsertUnit(d, unit string) string {
+	if sym.DecSep == "" {
 		return d + unit // DecSep empty, append unit
 	}
-	i := strings.Index(d, DecSep)
+	i := strings.Index(d, sym.DecSep)
 	if i < 0 {
 		return d + unit // no DecSep found, append unit
 	}
@@ -100,6 +117,10 @@ func InsertUnit(d, unit string) string {
 // DecSep returns ok = true if the unit was found and removed.  Otherwise it
 // returns d unchanged and ok = false.
 func StripUnit(d, unit string) (stripped string, ok bool) {
+	return Default.StripUnit(d, unit)
+}
+
+func (sym *Symbols) StripUnit(d, unit string) (stripped string, ok bool) {
 	xu := strings.Index(d, unit)
 	if xu < 0 {
 		return d, false
@@ -108,12 +129,12 @@ func StripUnit(d, unit string) (stripped string, ok bool) {
 	if xd == len(d) {
 		return d[:xu], true // string ends with unit.  just remove the unit.
 	}
-	if DecSep != "" && strings.HasPrefix(d[xd:], DecSep) {
+	if sym.DecSep != "" && strings.HasPrefix(d[xd:], sym.DecSep) {
 		return d[:xu] + d[xd:], true // remove unit, retain DecSep
 	}
-	if r, sz := utf8.DecodeRuneInString(d[xd:]); r == DecCombine {
+	if r, sz := utf8.DecodeRuneInString(d[xd:]); r == sym.DecCombine {
 		// replace unit and DecCombine with DecSep
-		return d[:xu] + DecSep + d[xd+sz:], true
+		return d[:xu] + sym.DecSep + d[xd+sz:], true
 	}
 	return d, false // otherwise don't mess with it
 }
@@ -121,9 +142,13 @@ func StripUnit(d, unit string) (stripped string, ok bool) {
 // FmtAngle constructs an formattable Angle containing the value a.
 func FmtAngle(a unit.Angle) *Angle { return &Angle{Angle: a} }
 
+// FmtAngle constructs an formattable Angle containing the value a.
+func (sym *Symbols) FmtAngle(a unit.Angle) *Angle { return &Angle{a, sym, nil} }
+
 // Angle is represents a formattable angle.
 type Angle struct {
 	unit.Angle
+	Sym *Symbols
 	Err error // set each time the value is formatted.
 }
 
@@ -134,6 +159,7 @@ func (a *Angle) Format(f fmt.State, c rune) {
 		verb:   c,
 		hrDeg:  a.Deg(),
 		caller: fsAngle,
+		sym:    a.Sym,
 	}
 	a.Err = s.writeFormatted()
 }
@@ -144,6 +170,7 @@ func (a *Angle) String() string { return fmt.Sprintf("%s", a) }
 // HourAngle represents a formattable angle hour.
 type HourAngle struct {
 	unit.HourAngle
+	Sym *Symbols
 	Err error // set each time the value is formatted.
 }
 
@@ -154,6 +181,7 @@ func (ha *HourAngle) Format(f fmt.State, c rune) {
 		verb:   c,
 		hrDeg:  ha.Hour(),
 		caller: fsHourAngle,
+		sym:    ha.Sym,
 	}
 	ha.Err = s.writeFormatted()
 }
@@ -164,6 +192,7 @@ func (ha *HourAngle) String() string { return fmt.Sprintf("%s", ha) }
 // RA represents a formattable right ascension.
 type RA struct {
 	unit.RA
+	Sym *Symbols
 	Err error // set each time the value is formatted.
 }
 
@@ -175,6 +204,7 @@ func (ra *RA) Format(f fmt.State, c rune) {
 		// pmod in case ra.RA was directly set to something out of range
 		hrDeg:  unit.PMod(ra.Hour(), 24),
 		caller: fsRA,
+		sym:    ra.Sym,
 	}
 	ra.Err = s.writeFormatted()
 }
@@ -185,6 +215,7 @@ func (ra *RA) String() string { return fmt.Sprintf("%s", ra) }
 // Time represents a formattable duration or relative time.
 type Time struct {
 	unit.Time
+	Sym *Symbols
 	Err error // set each time the value is formatted.
 }
 
@@ -195,6 +226,7 @@ func (t *Time) Format(f fmt.State, c rune) {
 		verb:   c,
 		hrDeg:  t.Hour(),
 		caller: fsTime,
+		sym:    t.Sym,
 	}
 	t.Err = s.writeFormatted()
 }
@@ -206,9 +238,19 @@ func FmtHourAngle(h unit.HourAngle) *HourAngle {
 	return &HourAngle{HourAngle: h}
 }
 
+func (sym *Symbols) FmtHourAngle(h unit.HourAngle) *HourAngle {
+	return &HourAngle{h, sym, nil}
+}
+
 func FmtRA(ra unit.RA) *RA { return &RA{RA: ra} }
 
+func (sym *Symbols) FmtRA(ra unit.RA) *RA { return &RA{ra, sym, nil} }
+
 func FmtTime(t unit.Time) *Time { return &Time{Time: t} }
+
+func (sym *Symbols) FmtTime(t unit.Time) *Time {
+	return &Time{t, sym, nil}
+}
 
 const (
 	secAppend    = 's'
@@ -235,10 +277,14 @@ type state struct {
 	hrDeg     float64 // input, value to format
 	prec      int     // f.Precision with a default of 0
 	caller    int     // use fs constants
+	sym       *Symbols
 	units     UnitSymbols
 }
 
 func (s *state) writeFormatted() error {
+	if s.sym == nil {
+		s.sym = Default
+	}
 	// valiate verb, pick formatting method in the process
 	var f func() (string, error)
 	switch s.verb {
@@ -289,9 +335,9 @@ func (s *state) writeFormatted() error {
 	// okay so far.  a little more set up,
 	switch {
 	case s.caller == fsAngle:
-		s.units = DMSUnits
+		s.units = s.sym.DMSUnits
 	default:
-		s.units = HMSUnits
+		s.units = s.sym.HMSUnits
 	}
 	// and then call the formatting method picked above
 	if r, err = f(); err == nil {
@@ -308,7 +354,7 @@ valErr:
 	width := 10 // default, defensive in case f somehow fails on 0.
 	if mock, err2 := f(); err2 == nil {
 		width = utf8.RuneCountInString(mock)
-		if strings.IndexRune(mock, DecCombine) >= 0 {
+		if strings.IndexRune(mock, s.sym.DecCombine) >= 0 {
 			width--
 		}
 	}
@@ -381,7 +427,7 @@ func (s *state) decimalHrDeg() (string, error) {
 	}
 	if s.prec > 0 {
 		split := len(r) - s.prec
-		r = r[:split] + DecSep + r[split:]
+		r = r[:split] + s.sym.DecSep + r[split:]
 	}
 	switch s.verb {
 	case hrDegAppend:
@@ -453,7 +499,7 @@ func (s *state) lastSeg(sec int64, unit string, first bool) string {
 	}
 	if s.prec > 0 {
 		split := len(r) - s.prec
-		r = r[:split] + DecSep + r[split:]
+		r = r[:split] + s.sym.DecSep + r[split:]
 	}
 	switch s.verb {
 	case secCombine, minCombine:
