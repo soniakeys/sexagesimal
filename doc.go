@@ -1,44 +1,27 @@
 // Public domain.
 
-// Package sexa represents quantities commonly expressed in sexagesimal formats.
+// Package sexa provides sexagesimal formatting for four types defined in the
+// external package github.com/soniakeys/unit, Angle, HourAngle, RA, and Time.
 //
-// This include angles, hour angles, right ascension, and time.  Package types
-// have formatting options including full sexagesimal, decimal degrees,
-// and decimal minutes.
+// Four types in this package wrap the four types from package unit, adding
+// formatting symbol options and an error value.  Formatting is done with Go
+// custom formatters for these types.
 //
-// Sexagesimal types
+// Formatting symbols
 //
-// The four types Angle, HourAngle, RA, and Time have an underlying type of
-// float64.  The native unit for Angle, HourAngle, and RA is radians.
-// The native unit for Time is seconds.  Each type has a constructor that takes
-// sexegesimal components.  Each type also has a method, Rad or Seconds, that
-// simply returns the underlying float64.  Being based on float64s, these types
-// are relatively efficient and so are suitable for representing data in
-// computational code.  Advantages of using these types over simple float64s
-// are type safety and the understood native units.
-//
-// Formatting
-//
-// Formatting is done with Go custom formatters.  Unfortunately, error
-// handling with custom formatters is limited, so four more types are defined
-// that associate a value with an error.  These are FmtAngle, FmtHourAngle,
-// FmtRA, and FmtTime.  The error field of these types allows detailed
-// error handling, but overhead makes these types less desirable for general
-// data representation.  Typically you will use these types only in code that
-// is generating output.
-//
-// Unit indicators
-//
+// Unit indicators and decimal separators are defined in the Symbols type.
+// There is a package default but symbols can also be defined as needed.
 // The symbols used for degrees, minutes, and seconds for the FmtAngle type
-// are taken from the package variable DMSUnits.  The symbols for
-// hours, minutes, and seconds for the FmtHourAngle, FmtRA, and FmtTime
-// types are taken from HMSUnits.
+// are taken from Symbols.DMSUnits.  The symbols for hours, minutes, and
+// seconds for the FmtHourAngle, FmtRA, and FmtTime types are taken from
+// Symbols.HMSUnits.
+//
+// A sexagesimal format can have up to three numeric segments.
+// The decimal separator, if it appears, is always in the last segment.
+// Symbols used for decimal separators are taken from Symbols.DecSep and
+// Symbols.DecCombine.
 //
 // Decimal unit indication
-//
-// The decimal separator, if it appears, is always in the last segment.
-// Symbols used for decimal separators are taken from package variables
-// DecSep and DecCombine.
 //
 // Three conventions are supported for unit indication on the decimal segment.
 // By default (with %v, for example) the unit follows the segment.
@@ -120,12 +103,12 @@
 // given.  The width number specifies the number of digits in the integer part
 // of the most significant segment, hours or degrees — not the total width.
 // For example you would typically use the number 2 for RA, 3 for longitude.
-// Also with fixed width consider avoiding the combining dot verbs.
-// (See note above on rendering of the combining dot.)  With fixed width
-// sexagesimal formats, the sign indicator is always the left-most column;
-// with fixed width space padded decimal hour or degree formats, the sign
-// indicator is formatted immediately in front of the number within the
-// space padded field.
+// Also with fixed width consider avoiding the combining dot verbs unless you
+// also control output rendering. (See note above on rendering of the combining
+// dot.)  With fixed width sexagesimal formats, the sign indicator is always
+// the left-most column; with fixed width space padded decimal hour or degree
+// formats, the sign indicator is formatted immediately in front of the number
+// within the space padded field.
 //
 // Precision specifies the number of places past the decimal separator
 // of the decimal segment.  The default is 0.  There is no variable precision

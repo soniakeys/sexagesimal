@@ -13,6 +13,18 @@ import (
 	"github.com/soniakeys/unit"
 )
 
+// Predefined errors indicate that a value could not be formatted.
+// Custom formatters of Angle, HourAngle, RA, and Time types
+// may store these in the Err field of the value being formatted.
+var (
+	ErrLossOfPrecision = errors.New("Loss of precision")
+	ErrDegreeOverflow  = errors.New("Degrees overflow width")
+	ErrHourOverflow    = errors.New("Hours overflow width")
+	ErrPosInf          = errors.New("+Inf")
+	ErrNegInf          = errors.New("-Inf")
+	ErrNaN             = errors.New("NaN")
+)
+
 // UnitSymbols holds symbols for formatting Angle, HourAngle, RA,
 // and Time types.
 type UnitSymbols struct {
@@ -32,8 +44,7 @@ type Symbols struct {
 	DecCombine rune
 }
 
-// Default symbols are used by package top-level functions FmtAngle,
-// FmtHourAngle, FmtRA, and FmtTime.
+// Default symbols are used by package top-level functions.
 var Default = &Symbols{
 	DMSUnits:   UnitSymbols{"°", "′", "″"},
 	HMSUnits:   UnitSymbols{"ʰ", "ᵐ", "ˢ"},
@@ -41,41 +52,17 @@ var Default = &Symbols{
 	DecCombine: '\u0323',
 }
 
-// Predefined errors indicate that a value could not be formatted.
-// Custom formatters of Angle, HourAngle, RA, and Time types
-// may store these in the Err field of the value being formatted.
-var (
-	ErrLossOfPrecision = errors.New("Loss of precision")
-	ErrDegreeOverflow  = errors.New("Degrees overflow width")
-	ErrHourOverflow    = errors.New("Hours overflow width")
-	ErrPosInf          = errors.New("+Inf")
-	ErrNegInf          = errors.New("-Inf")
-	ErrNaN             = errors.New("NaN")
-)
-
 // CombineUnit inserts a unit indicator into a formatted decimal number,
 // combining it if possible with the decimal separator.
 //
-// The package variable DecSep is used to identify the decimal separator.
-// If DecSep is non-empty and occurrs in d, the occurrence is replaced with
-// argument 'unit' and package variable DecCombine.  Otherwise unit is
+// The decimal separator is identified by the package variable Default.
+// If Default.DecSep is non-empty and occurrs in d, the occurrence is replaced
+// with argument 'unit' and the symbol Default.DecCombine.  Otherwise unit is
 // appended to the end of d.
 //
-// See also InsertUnit, StripUnit.
+// See also InsertUnit, StripUnit, and Symbols.CombineUnit.
 func CombineUnit(d, unit string) string {
 	return Default.CombineUnit(d, unit)
-}
-
-func (sym *Symbols) CombineUnit(d, unit string) string {
-	if sym.DecSep == "" {
-		return d + unit // DecSep empty, append unit
-	}
-	i := strings.Index(d, sym.DecSep)
-	if i < 0 {
-		return d + unit // no DecSep found, append unit
-	}
-	// insert unit, replace DecSep occurrence with DecCombine
-	return d[:i] + unit + string(sym.DecCombine) + d[i+len(sym.DecSep):]
 }
 
 // InsertUnit inserts a unit indicator into a formatted decimal number.
@@ -83,25 +70,13 @@ func (sym *Symbols) CombineUnit(d, unit string) string {
 // The indicator is inserted just before the decimal separator if one is
 // present, or at the end of the number otherwise.
 //
-// The package variable DecSep is used to identify the decimal separator.
-// If DecSep is non-empty and occurrs in d, unit is added just before the
-// occurrence.  Otherwise unit is appended to the end of d.
+// The decimal separator is identified by the package variable Default.
+// If Default.DecSep is non-empty and occurrs in d, unit is added just before
+// the occurrence.  Otherwise unit is appended to the end of d.
 //
-// See also CombineUnit, StripUnit.
+// See also CombineUnit, StripUnit, and Symbols.InsertUnit.
 func InsertUnit(d, unit string) string {
 	return Default.InsertUnit(d, unit)
-}
-
-func (sym *Symbols) InsertUnit(d, unit string) string {
-	if sym.DecSep == "" {
-		return d + unit // DecSep empty, append unit
-	}
-	i := strings.Index(d, sym.DecSep)
-	if i < 0 {
-		return d + unit // no DecSep found, append unit
-	}
-	// insert unit before DecSep
-	return d[:i] + unit + d[i:]
 }
 
 // StripUnit reverses the action of InsertUnit or CombineUnit,
@@ -112,38 +87,14 @@ func (sym *Symbols) InsertUnit(d, unit string) string {
 // or if DecSep is non-empty and ocurrs immediately following, then the unit
 // is Removed.  If the specified unit is found with DecCombine immediately
 // following, then both the unit and the DecCombine rune are replaced with
-// DecSep.
+// DecSep.  As with InsertUnit and CombineUnit, the decimal separators are
+// identified by the package variable Default.
 //
-// DecSep returns ok = true if the unit was found and removed.  Otherwise it
+// StripUnit returns ok = true if the unit was found and removed.  Otherwise it
 // returns d unchanged and ok = false.
 func StripUnit(d, unit string) (stripped string, ok bool) {
 	return Default.StripUnit(d, unit)
 }
-
-func (sym *Symbols) StripUnit(d, unit string) (stripped string, ok bool) {
-	xu := strings.Index(d, unit)
-	if xu < 0 {
-		return d, false
-	}
-	xd := xu + len(unit)
-	if xd == len(d) {
-		return d[:xu], true // string ends with unit.  just remove the unit.
-	}
-	if sym.DecSep != "" && strings.HasPrefix(d[xd:], sym.DecSep) {
-		return d[:xu] + d[xd:], true // remove unit, retain DecSep
-	}
-	if r, sz := utf8.DecodeRuneInString(d[xd:]); r == sym.DecCombine {
-		// replace unit and DecCombine with DecSep
-		return d[:xu] + sym.DecSep + d[xd+sz:], true
-	}
-	return d, false // otherwise don't mess with it
-}
-
-// FmtAngle constructs an formattable Angle containing the value a.
-func FmtAngle(a unit.Angle) *Angle { return &Angle{Angle: a} }
-
-// FmtAngle constructs an formattable Angle containing the value a.
-func (sym *Symbols) FmtAngle(a unit.Angle) *Angle { return &Angle{a, sym, nil} }
 
 // Angle is represents a formattable angle.
 type Angle struct {
@@ -151,6 +102,9 @@ type Angle struct {
 	Sym *Symbols
 	Err error // set each time the value is formatted.
 }
+
+// FmtAngle constructs an formattable Angle containing the value a.
+func FmtAngle(a unit.Angle) *Angle { return &Angle{Angle: a} }
 
 // Format implements fmt.Formatter
 func (a *Angle) Format(f fmt.State, c rune) {
@@ -172,6 +126,11 @@ type HourAngle struct {
 	unit.HourAngle
 	Sym *Symbols
 	Err error // set each time the value is formatted.
+}
+
+// FmtHourAngle constructs an formattable HourAngle containing the value h.
+func FmtHourAngle(h unit.HourAngle) *HourAngle {
+	return &HourAngle{HourAngle: h}
 }
 
 // Format implements fmt.Formatter
@@ -196,6 +155,9 @@ type RA struct {
 	Err error // set each time the value is formatted.
 }
 
+// FmtRA constructs an formattable RA containing the value ra.
+func FmtRA(ra unit.RA) *RA { return &RA{RA: ra} }
+
 // Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
 func (ra *RA) Format(f fmt.State, c rune) {
 	s := &state{
@@ -219,6 +181,9 @@ type Time struct {
 	Err error // set each time the value is formatted.
 }
 
+// FmtTime constructs an formattable Time containing the value t.
+func FmtTime(t unit.Time) *Time { return &Time{Time: t} }
+
 // Format implements fmt.Formatter, formatting to hours, minutes, and seconds.
 func (t *Time) Format(f fmt.State, c rune) {
 	s := &state{
@@ -234,22 +199,94 @@ func (t *Time) Format(f fmt.State, c rune) {
 // String implements fmt.Stringer
 func (t *Time) String() string { return fmt.Sprintf("%s", t) }
 
-func FmtHourAngle(h unit.HourAngle) *HourAngle {
-	return &HourAngle{HourAngle: h}
-}
+// FmtAngle constructs an formattable Angle containing the value a.
+func (sym *Symbols) FmtAngle(a unit.Angle) *Angle { return &Angle{a, sym, nil} }
 
+// FmtHourAngle constructs an formattable HourAngle containing the value h.
 func (sym *Symbols) FmtHourAngle(h unit.HourAngle) *HourAngle {
 	return &HourAngle{h, sym, nil}
 }
 
-func FmtRA(ra unit.RA) *RA { return &RA{RA: ra} }
-
+// FmtRA constructs an formattable RA containing the value ra.
 func (sym *Symbols) FmtRA(ra unit.RA) *RA { return &RA{ra, sym, nil} }
 
-func FmtTime(t unit.Time) *Time { return &Time{Time: t} }
-
+// FmtTime constructs an formattable Time containing the value t.
 func (sym *Symbols) FmtTime(t unit.Time) *Time {
 	return &Time{t, sym, nil}
+}
+
+// CombineUnit inserts a unit indicator into a formatted decimal number,
+// combining it if possible with the decimal separator.
+//
+// If sym.DecSep is non-empty and occurrs in d, the occurrence is replaced with
+// argument 'unit' and the symbol sym.DecCombine.  Otherwise unit is appended
+// to the end of d.
+//
+// See also InsertUnit, StripUnit, and the corresponding top-level functions
+// that use package default symbols.
+func (sym *Symbols) CombineUnit(d, unit string) string {
+	if sym.DecSep == "" {
+		return d + unit // DecSep empty, append unit
+	}
+	i := strings.Index(d, sym.DecSep)
+	if i < 0 {
+		return d + unit // no DecSep found, append unit
+	}
+	// insert unit, replace DecSep occurrence with DecCombine
+	return d[:i] + unit + string(sym.DecCombine) + d[i+len(sym.DecSep):]
+}
+
+// InsertUnit inserts a unit indicator into a formatted decimal number.
+//
+// The indicator is inserted just before the decimal separator if one is
+// present, or at the end of the number otherwise.
+//
+// If sym.DecSep is non-empty and occurrs in d, unit is added just before the
+// occurrence.  Otherwise unit is appended to the end of d.
+//
+// See also CombineUnit, StripUnit, and the corresponding top-level functions
+// that use package default symbols.
+func (sym *Symbols) InsertUnit(d, unit string) string {
+	if sym.DecSep == "" {
+		return d + unit // DecSep empty, append unit
+	}
+	i := strings.Index(d, sym.DecSep)
+	if i < 0 {
+		return d + unit // no DecSep found, append unit
+	}
+	// insert unit before DecSep
+	return d[:i] + unit + d[i:]
+}
+
+// StripUnit reverses the action of InsertUnit or CombineUnit,
+// removing the specified unit indicator and restoring a following
+// DecCombine to DecSep.
+//
+// More specifically, if the specified unit is found at the end of string d
+// or if sym.DecSep is non-empty and ocurrs immediately following, then the unit
+// is Removed.  If the specified unit is found with sym.DecCombine immediately
+// following, then both the unit and the DecCombine rune are replaced with
+// sym.DecSep.
+//
+// StripUnit returns ok = true if the unit was found and removed.  Otherwise it
+// returns d unchanged and ok = false.
+func (sym *Symbols) StripUnit(d, unit string) (stripped string, ok bool) {
+	xu := strings.Index(d, unit)
+	if xu < 0 {
+		return d, false
+	}
+	xd := xu + len(unit)
+	if xd == len(d) {
+		return d[:xu], true // string ends with unit.  just remove the unit.
+	}
+	if sym.DecSep != "" && strings.HasPrefix(d[xd:], sym.DecSep) {
+		return d[:xu] + d[xd:], true // remove unit, retain DecSep
+	}
+	if r, sz := utf8.DecodeRuneInString(d[xd:]); r == sym.DecCombine {
+		// replace unit and DecCombine with DecSep
+		return d[:xu] + sym.DecSep + d[xd+sz:], true
+	}
+	return d, false // otherwise don't mess with it
 }
 
 const (
