@@ -5,7 +5,7 @@
 //
 // Four types in this package wrap the four types from package unit, adding
 // formatting symbol options and an error value.  Formatting is done with Go
-// custom formatters for these types.
+// custom formatters.
 //
 // Formatting symbols
 //
@@ -113,6 +113,14 @@
 // Precision specifies the number of places past the decimal separator
 // of the decimal segment.  The default is 0.  There is no variable precision
 // format.
+//
+// Without a specified width the format is not fixed width but of course you
+// can always format the result into a fixed width string with an additional
+// printf step.  Since all formats of this package have fixed precision, if
+// you right justify the string (the default) then at least the decimal points
+// will align.  Additionally if you use the '0' flag, then all segments after
+// the first will have fixed width so that all unit indicators will align as
+// well.
 //
 // Errors
 //

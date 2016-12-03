@@ -494,7 +494,8 @@ func (s *state) decimalMin() (string, error) {
 }
 
 func (s *state) firstSeg(x int64) (r string, elided bool, err error) {
-	switch wid, widSpec := s.Width(); {
+	wid, widSpec := s.Width()
+	switch {
 	case widSpec:
 		f := "%*d"
 		if s.Flag('0') {
@@ -518,7 +519,7 @@ func (s *state) firstSeg(x int64) (r string, elided bool, err error) {
 		r = "-" + r
 	case s.Flag('+'):
 		r = "+" + r
-	case s.Flag(' '):
+	case s.Flag(' ') || widSpec:
 		r = " " + r
 	}
 	return r, elided, nil

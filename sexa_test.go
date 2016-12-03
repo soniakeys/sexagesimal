@@ -131,14 +131,6 @@ func ExampleStripUnit_strange() {
 	s, ok = sexa.StripUnit(formatted, "°")
 	fmt.Println("Strip result:", s, ok)
 
-	// Empty DecSep.  StripUnit needs to validate the presense of a non-empty
-	// separator before it removes the unit.
-	formatted = "1°.25"
-	fmt.Println("Formatted:   ", formatted)
-	var noSep sexa.Symbols
-	s, ok = noSep.StripUnit(formatted, "°")
-	fmt.Println("Strip result:", s, ok)
-
 	// Output:
 	// Formatted:    1.25ʰ
 	// Strip result: 1.25ʰ false
@@ -146,6 +138,17 @@ func ExampleStripUnit_strange() {
 	// Strip result: 1°25′44.5″ false
 	// Formatted:    1°25
 	// Strip result: 1°25 false
+}
+
+func ExampleSymbols_StripUnit_strange() {
+	// Empty DecSep.  StripUnit needs to validate the presense of a non-empty
+	// separator before it removes the unit.
+	formatted := "1°.25"
+	fmt.Println("Formatted:   ", formatted)
+	var noSep sexa.Symbols
+	s, ok := noSep.StripUnit(formatted, "°")
+	fmt.Println("Strip result:", s, ok)
+	// Output:
 	// Formatted:    1°.25
 	// Strip result: 1°.25 false
 }
@@ -208,7 +211,7 @@ func ExampleAngle_width() {
 		fmt.Println(f.Err)
 	}
 	// Output:
-	// *********
+	// **********
 	// Degrees overflow width
 }
 
@@ -253,11 +256,11 @@ func ExampleTime_String() {
 
 func TestOverflow(t *testing.T) {
 	a := sexa.FmtAngle(unit.NewAngle(' ', 23, 26, 44))
-	if f := fmt.Sprintf("%03s", a); f != "023°26′44″" {
+	if f := fmt.Sprintf("%03s", a); f != " 023°26′44″" {
 		t.Fatal(f)
 	}
 	a.Angle = unit.NewAngle(' ', 4423, 26, 44)
-	if f := fmt.Sprintf("%03s", a); f != "**********" {
+	if f := fmt.Sprintf("%03s", a); f != "***********" {
 		t.Fatal(f)
 	}
 }

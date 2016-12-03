@@ -86,20 +86,62 @@ func Example_flags() {
 }
 
 func Example_width() {
-	// fixed width formats
-	a := unit.NewAngle(' ', 0, 1, 2.34)
-	f := sexa.FmtAngle(a)
-	fmt.Printf("|%2.3s|\n", f)
-	fmt.Printf("|%02.3s|\n", f)
+	// fixed width format
+	p := sexa.FmtAngle(unit.NewAngle(' ', 0, 1, 2.34))
+	n := sexa.FmtAngle(unit.NewAngle('-', 0, 1, 2.34))
+	fmt.Printf("|%2.3s|\n", p)
+	fmt.Printf("|%2.3s|\n", n)
 
-	// packed columns with no separators
-	var noSep sexa.Symbols
-	f = noSep.FmtAngle(a)
-	fmt.Printf("\n|%02.3s|\n", f)
+	// same with '0' flag
+	fmt.Println()
+	fmt.Printf("|%02.3s|\n", p)
+	fmt.Printf("|%02.3s|\n", n)
+
+	// fixed width with no separators packs columns
+	fmt.Println()
+	ff := func(a unit.Angle) {
+		noSep := sexa.Symbols{}
+		fmt.Printf("|%+02.3s|\n", noSep.FmtAngle(a))
+	}
+	ff(0)
+	ff(unit.NewAngle('-', 0, 1, 2.34))
+	ff(unit.NewAngle(' ', 23, 45, 16.7))
+
+	// no width specifier but additional printf step to format into fixed
+	// width string.  '0' flag aligns unit symbols.
+	fmt.Println()
+	ff = func(a unit.Angle) {
+		fmt.Printf("|%15s|\n", fmt.Sprintf("%0.3s", sexa.FmtAngle(a)))
+	}
+	ff(0)
+	ff(unit.NewAngle('-', 0, 1, 2.34))
+	ff(unit.NewAngle('-', 123, 45, 16.7))
+
+	// same with '#' flag
+	fmt.Println()
+	ff = func(a unit.Angle) {
+		fmt.Printf("|%15s|\n", fmt.Sprintf("%#0.3s", sexa.FmtAngle(a)))
+	}
+	ff(0)
+	ff(unit.NewAngle('-', 0, 1, 2.34))
+	ff(unit.NewAngle('-', 123, 45, 16.7))
 
 	// Output:
-	// | 0° 1′ 2.340″|
-	// |00°01′02.340″|
+	// |  0° 1′ 2.340″|
+	// |- 0° 1′ 2.340″|
 	//
-	// |000102340|
+	// | 00°01′02.340″|
+	// |-00°01′02.340″|
+	//
+	// |+000000000|
+	// |-000102340|
+	// |+234516700|
+	//
+	// |         0.000″|
+	// |     -1′02.340″|
+	// |-123°45′16.700″|
+	//
+	// |   0°00′00.000″|
+	// |  -0°01′02.340″|
+	// |-123°45′16.700″|
 }
