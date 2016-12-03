@@ -141,7 +141,7 @@ func ExampleStripUnit_strange() {
 }
 
 func ExampleSymbols_StripUnit_strange() {
-	// Empty DecSep.  StripUnit needs to validate the presense of a non-empty
+	// Empty DecSep.  StripUnit needs to validate the presence of a non-empty
 	// separator before it removes the unit.
 	formatted := "1°.25"
 	fmt.Println("Formatted:   ", formatted)
@@ -177,14 +177,6 @@ func TestStrip(t *testing.T) {
 	}
 }
 
-func ExampleFmtAngle() {
-	a := unit.NewAngle('-', 13, 47, 22)
-	f := sexa.FmtAngle(a)
-	fmt.Println(reflect.TypeOf(f), f)
-	// Output:
-	// *sexa.Angle -13°47′22″
-}
-
 func ExampleAngle() {
 	f := sexa.FmtAngle(unit.NewAngle(' ', 180, 0, 0))
 	fmt.Println(f)
@@ -194,25 +186,12 @@ func ExampleAngle() {
 	// sexa.Angle{Angle:3.141592653589793, Sym:(*sexa.Symbols)(nil), Err:error(nil)}
 }
 
-func ExampleAngle_verb() {
-	f := sexa.FmtAngle(unit.NewAngle(' ', 135, 0, 0))
-	fmt.Printf("%z\n", f) // produces no output
-	if f.Err != nil {
-		fmt.Println(f.Err)
-	}
+func ExampleFmtAngle() {
+	a := unit.NewAngle('-', 13, 47, 22)
+	f := sexa.FmtAngle(a)
+	fmt.Println(reflect.TypeOf(f), f)
 	// Output:
-	// %!z(BADVERB)
-}
-
-func ExampleAngle_width() {
-	f := sexa.FmtAngle(unit.NewAngle(' ', 135, 0, 0))
-	fmt.Printf("%2s\n", f) // fills field with *s
-	if f.Err != nil {
-		fmt.Println(f.Err)
-	}
-	// Output:
-	// **********
-	// Degrees overflow width
+	// *sexa.Angle -13°47′22″
 }
 
 func ExampleAngle_String() {
@@ -223,12 +202,46 @@ func ExampleAngle_String() {
 	// string "23°26′44″"
 }
 
+func ExampleHourAngle() {
+	f := sexa.FmtHourAngle(unit.NewHourAngle(' ', 4, 0, 0))
+	fmt.Println(f)
+	fmt.Printf("%#v\n", *f)
+	// Output:
+	// 4ʰ0ᵐ0ˢ
+	// sexa.HourAngle{HourAngle:1.0471975511965976, Sym:(*sexa.Symbols)(nil), Err:error(nil)}
+}
+
+func ExampleFmtHourAngle() {
+	h := unit.NewHourAngle('-', 1, 47, 22)
+	f := sexa.FmtHourAngle(h)
+	fmt.Println(reflect.TypeOf(f), f)
+	// Output:
+	// *sexa.HourAngle -1ʰ47ᵐ22ˢ
+}
+
 func ExampleHourAngle_String() {
-	h := sexa.FmtHourAngle(unit.NewHourAngle('-', 12, 34, 45.6))
+	h := sexa.FmtHourAngle(unit.NewHourAngle('-', 2, 34, 45.6))
 	s := h.String()
 	fmt.Printf("%T %q\n", s, s)
 	// Output:
-	// string "-12ʰ34ᵐ46ˢ"
+	// string "-2ʰ34ᵐ46ˢ"
+}
+
+func ExampleRA() {
+	f := sexa.FmtRA(unit.NewRA(4, 0, 0))
+	fmt.Println(f)
+	fmt.Printf("%#v\n", *f)
+	// Output:
+	// 4ʰ0ᵐ0ˢ
+	// sexa.RA{RA:1.0471975511965976, Sym:(*sexa.Symbols)(nil), Err:error(nil)}
+}
+
+func ExampleFmtRA() {
+	ra := unit.NewRA(1, 47, 22)
+	f := sexa.FmtRA(ra)
+	fmt.Println(reflect.TypeOf(f), f)
+	// Output:
+	// *sexa.RA 1ʰ47ᵐ22ˢ
 }
 
 func ExampleRA_String() {
@@ -240,18 +253,28 @@ func ExampleRA_String() {
 }
 
 func ExampleTime() {
-	t := sexa.FmtTime(unit.NewTime(' ', 15, 22, 7))
-	fmt.Printf("%0s\n", t)
+	t := sexa.FmtTime(unit.NewTime(' ', 0, 1, 30))
+	fmt.Println(t)
+	fmt.Printf("%#v\n", *t)
 	// Output:
-	// 15ʰ22ᵐ07ˢ
+	// 1ᵐ30ˢ
+	// sexa.Time{Time:90, Sym:(*sexa.Symbols)(nil), Err:error(nil)}
+}
+
+func ExampleFmtTime() {
+	t := unit.NewTime('-', 15, 22, 7)
+	f := sexa.FmtTime(t)
+	fmt.Println(reflect.TypeOf(f), f)
+	// Output:
+	// *sexa.Time -15ʰ22ᵐ7ˢ
 }
 
 func ExampleTime_String() {
-	t := sexa.FmtTime(unit.NewTime('-', 12, 34, 45.6))
+	t := sexa.FmtTime(unit.NewTime(0, 12, 34, 45.6))
 	s := t.String()
 	fmt.Printf("%T %q\n", s, s)
 	// Output:
-	// string "-12ʰ34ᵐ46ˢ"
+	// string "12ʰ34ᵐ46ˢ"
 }
 
 func TestOverflow(t *testing.T) {
@@ -272,5 +295,158 @@ func TestLeadingZero(t *testing.T) {
 	want := "0.089876°"
 	if got != want {
 		t.Fatalf("Format %%.6h = %s, want %s", got, want)
+	}
+}
+
+func ExampleSymbols_CombineUnit() {
+	formatted := "1,25"
+	fmt.Println("Decimal comma:", formatted)
+	c := sexa.Default
+	c.DecSep = ","
+	c.DecCombine = '\u0326' // combining comma below
+	// Note that some software may not render the combining comma well.
+	fmt.Println("Degree unit with combining form of decimal comma:",
+		c.CombineUnit(formatted, "°"))
+	// Output:
+	// Decimal comma: 1,25
+	// Degree unit with combining form of decimal comma: 1°̦25
+}
+
+func ExampleSymbols_InsertUnit() {
+	formatted := "1,25"
+	fmt.Println("Decimal comma:", formatted)
+	commaSep := &sexa.Symbols{DecSep: ","}
+	fmt.Println("Degree unit with decimal comma: ",
+		commaSep.InsertUnit(formatted, "°"))
+	// Output:
+	// Decimal comma: 1,25
+	// Degree unit with decimal comma:  1°,25
+}
+
+func ExampleSymbols_StripUnit() {
+	formatted := "1,25"
+	fmt.Println("Decimal comma:", formatted)
+	c := &sexa.Symbols{DecSep: ","}
+	u := c.InsertUnit(formatted, "°")
+	fmt.Println("With degree unit:", u)
+	s, ok := c.StripUnit(u, "°")
+	fmt.Println("Degree unit stripped:", s, ok)
+	// Output:
+	// Decimal comma: 1,25
+	// With degree unit: 1°,25
+	// Degree unit stripped: 1,25 true
+}
+
+func ExampleSymbols_FmtAngle() {
+	a := unit.NewAngle('-', 13, 47, 22)
+	s := sexa.Symbols{DMSUnits: sexa.UnitSymbols{"d ", "m ", "s"}}
+	fmt.Println(s.FmtAngle(a))
+	// Output:
+	// -13d 47m 22s
+}
+
+func ExampleSymbols_FmtHourAngle() {
+	a := unit.NewHourAngle('-', 1, 47, 22)
+	s := sexa.Symbols{HMSUnits: sexa.UnitSymbols{"hr ", "min ", "sec"}}
+	fmt.Println(s.FmtHourAngle(a))
+	// Output:
+	// -1hr 47min 22sec
+}
+
+func ExampleSymbols_FmtRA() {
+	a := unit.NewRA(1, 47, 22)
+	s := sexa.Symbols{HMSUnits: sexa.UnitSymbols{"h", "m", "s"}}
+	fmt.Println(s.FmtRA(a))
+	// Output:
+	// 1h47m22s
+}
+
+func ExampleSymbols_FmtTime() {
+	a := unit.NewTime('-', 0, 22, 7)
+	s := sexa.Symbols{HMSUnits: sexa.UnitSymbols{":", ":", ""}}
+	// Careful using ":" for clock-style formatting.  You probably want the
+	// '#' flag to show all segments and the '0' flag to show 2 digit minutes
+	// and seconds.
+	fmt.Printf("%#0s\n", s.FmtTime(a))
+	// Output:
+	// -0:22:07
+}
+
+func TestCoverage(t *testing.T) {
+	f := sexa.FmtAngle(unit.AngleFromDeg(9))
+	want := "******************"
+	got := fmt.Sprintf("%.15h", f)
+	if got != want {
+		t.Error(got, want)
+	}
+	if f.Err != sexa.ErrLossOfPrecision {
+		t.Error(f.Err, sexa.ErrLossOfPrecision)
+	}
+	want = "*****************"
+	got = fmt.Sprintf("%.14m", f)
+	if got != want {
+		t.Error(got, want)
+	}
+	if f.Err != sexa.ErrLossOfPrecision {
+		t.Error(f.Err, sexa.ErrLossOfPrecision)
+	}
+
+	// flags with non-fixed width
+	f.Angle = unit.AngleFromDeg(1.02)
+	want = "+1.020°"
+	got = fmt.Sprintf("%+.3h", f)
+	if got != want {
+		t.Error(got, want)
+	}
+	want = " 1.020°"
+	got = fmt.Sprintf("% .3h", f)
+	if got != want {
+		t.Error(got, want)
+	}
+
+	// fixed width
+	want = " +1.020°"
+	got = fmt.Sprintf("%+2.3h", f)
+	if got != want {
+		t.Error(got, want)
+	}
+	f.Angle = -f.Angle
+	want = "-01.020°"
+	got = fmt.Sprintf("% 02.3h", f)
+	if got != want {
+		t.Error(got, want)
+	}
+	f.Angle *= 100
+	want = "********"
+	got = fmt.Sprintf("% 02.3h", f)
+	if got != want {
+		t.Error(got, want)
+	}
+	if f.Err != sexa.ErrDegreeOverflow {
+		t.Error(f.Err, sexa.ErrDegreeOverflow)
+	}
+	tf := sexa.FmtTime(unit.TimeFromHour(102))
+	want = "********"
+	got = fmt.Sprintf("% 02.3h", tf)
+	if got != want {
+		t.Error(got, want)
+	}
+	if tf.Err != sexa.ErrHourOverflow {
+		t.Error(tf.Err, sexa.ErrHourOverflow)
+	}
+
+	// a coverage test, but the point is that these render with the same width
+	// as long as the combining dot is rendered actually combining.
+	wantValid := "|  1°̣02|"
+	wantOverf := "|******|"
+	f.Angle = unit.AngleFromDeg(1.02)
+	got = fmt.Sprintf("|%2.2i|", f)
+	if got != wantValid {
+		t.Error(got, wantValid)
+	}
+	f.Angle *= 100
+	got = fmt.Sprintf("|%2.2i|", f)
+	if got != wantOverf {
+		t.Error(got, wantOverf)
 	}
 }

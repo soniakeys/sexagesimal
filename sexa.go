@@ -225,7 +225,7 @@ func (sym *Symbols) FmtTime(t unit.Time) *Time {
 // See also InsertUnit, StripUnit, and the corresponding top-level functions
 // that use package default symbols.
 func (sym *Symbols) CombineUnit(d, unit string) string {
-	if sym.DecSep == "" {
+	if sym.DecSep == "" || sym.DecCombine == 0 {
 		return d + unit // DecSep empty, append unit
 	}
 	i := strings.Index(d, sym.DecSep)
@@ -322,6 +322,13 @@ func (s *state) writeFormatted() error {
 	if s.sym == nil {
 		s.sym = Default
 	}
+	switch {
+	case s.caller == fsAngle:
+		s.units = s.sym.DMSUnits
+	default:
+		s.units = s.sym.HMSUnits
+	}
+
 	// valiate verb, pick formatting method in the process
 	var f func() (string, error)
 	switch s.verb {
@@ -368,13 +375,6 @@ func (s *state) writeFormatted() error {
 	default:
 		err = ErrNegInf
 		goto valErr
-	}
-	// okay so far.  a little more set up,
-	switch {
-	case s.caller == fsAngle:
-		s.units = s.sym.DMSUnits
-	default:
-		s.units = s.sym.HMSUnits
 	}
 	// and then call the formatting method picked above
 	if r, err = f(); err == nil {
@@ -454,7 +454,7 @@ func (s *state) decimalHrDeg() (string, error) {
 			f += "*d"
 		}
 		wf := s.prec + wid + 1 // +1 here is required space for sign
-		r := fmt.Sprintf(f, wf, i)
+		r = fmt.Sprintf(f, wf, i)
 		if len(r) > wf {
 			if s.caller == fsAngle {
 				return "", ErrDegreeOverflow
@@ -470,9 +470,9 @@ func (s *state) decimalHrDeg() (string, error) {
 	case hrDegAppend:
 		r += string(s.units.HrDeg)
 	case hrDegCombine:
-		r = CombineUnit(r, s.units.HrDeg)
+		r = s.sym.CombineUnit(r, s.units.HrDeg)
 	case hrDegInsert:
-		r = InsertUnit(r, s.units.HrDeg)
+		r = s.sym.InsertUnit(r, s.units.HrDeg)
 	}
 	return r, nil
 }
@@ -541,9 +541,9 @@ func (s *state) lastSeg(sec int64, unit string, first bool) string {
 	}
 	switch s.verb {
 	case secCombine, minCombine:
-		return CombineUnit(r, unit)
+		return s.sym.CombineUnit(r, unit)
 	case secInsert, minInsert:
-		return InsertUnit(r, unit)
+		return s.sym.InsertUnit(r, unit)
 	}
 	return r + unit
 }

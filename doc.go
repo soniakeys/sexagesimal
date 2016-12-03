@@ -143,7 +143,8 @@
 //
 // +Inf, -Inf, and NaN always cause overflow.
 //
-// Only errors related to the value being formatted are handled as overflow.
-// Errors of format specification are handled with the standard Printf
-// convention of emitting the error in the formatted result.
+// Only errors related to the value being formatted are handled as overflow
+// and leave a non-nil Err field.  Errors of format specification are handled
+// with the standard Printf convention of emitting the error in the formatted
+// result and leave the Err field nil.
 package sexa
