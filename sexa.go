@@ -1,4 +1,4 @@
-// Public domain.
+// License: MIT
 
 package sexa
 

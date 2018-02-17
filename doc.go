@@ -1,4 +1,4 @@
-// Public domain.
+// License: MIT
 
 // Package sexa provides sexagesimal formatting for four types defined in the
 // external package github.com/soniakeys/unit, Angle, HourAngle, RA, and Time.
